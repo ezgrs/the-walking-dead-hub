@@ -1,41 +1,67 @@
+import asyncio
 import contextlib
 import types
 import typing
 
 import bs4
-import playwright.async_api
+import playwright.sync_api
 
 from . import PageLoader as BasePageLoader
 
+import multiprocessing
+import multiprocessing.queues
+
+def run_playwright_worker(
+    request_queue: multiprocessing.queues.Queue[str | None],
+    response_queue: multiprocessing.queues.Queue[tuple[str, str]],
+) -> None:
+    with playwright.sync_api.sync_playwright() as p:
+        with p.chromium.launch(
+            executable_path="C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
+            headless=False,
+        ) as browser:
+            while True:
+                href = request_queue.get()
+                if href is None:
+                    break
+
+                with browser.new_page() as page:
+                    page.goto(f"https://walkingdead.fandom.com{href}")
+                    page.wait_for_selector("#Trivia")
+                    html = page.content()
+
+                response_queue.put((href, html))
+
 
 class PageLoader(BasePageLoader):
-    exit_stack: contextlib.AsyncExitStack
-    browser: playwright.async_api.Browser
-
-    def __init__(self) -> None:
-        self.exit_stack = contextlib.AsyncExitStack()
+    request_queue: multiprocessing.queues.Queue[str | None]
+    response_queue: multiprocessing.queues.Queue[tuple[str, str]]
+    worker: multiprocessing.Process
 
     @typing.override
     async def __aenter__(self) -> "PageLoader":
-        p = await self.exit_stack.enter_async_context(
-            playwright.async_api.async_playwright()
+        self.request_queue = multiprocessing.Queue()
+        self.response_queue = multiprocessing.Queue()
+
+        self.worker = multiprocessing.Process(
+            target=run_playwright_worker,
+            args=(self.request_queue, self.response_queue),
         )
-        self.browser = await self.exit_stack.enter_async_context(
-            await p.chromium.launch(
-                executable_path="C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
-                headless=False,
-            )
-        )
+        await asyncio.to_thread(self.worker.start)
         return await super().__aenter__()
 
     @typing.override
     async def load(self, href: str) -> bs4.BeautifulSoup:
-        async with await self.browser.new_page() as page:
-            await page.goto(f"https://walkingdead.fandom.com{href}")
-            await page.wait_for_selector("#Trivia")
-            return bs4.BeautifulSoup(
-                await page.content(), features="html.parser"
-            )
+        self.request_queue.put(href)
+
+        def wait_result() -> str:
+            while True:
+                current_href, content = self.response_queue.get()
+                if current_href == href:
+                    return content
+
+        content = await asyncio.to_thread(wait_result)
+        return bs4.BeautifulSoup(content, features="html.parser")
 
     @typing.override
     async def __aexit__(
@@ -44,4 +70,5 @@ class PageLoader(BasePageLoader):
         exc_value: BaseException | None,
         traceback: types.TracebackType | None,
     ) -> bool | None:
-        return await self.exit_stack.__aexit__(exc_type, exc_value, traceback)
+        self.request_queue.put(None)
+        await asyncio.to_thread(self.worker.join)
