@@ -1,0 +1,30 @@
+[project]
+name = "twd-life-tracker"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Enzo Santos",email = "enzo.santos29@hotmail.com"}
+]
+requires-python = ">=3.13,<4"
+dependencies = [
+    "httpx (>=0.28.1,<0.29.0)",
+    "beautifulsoup4 (>=4.14.3,<5.0.0)",
+    "pytest-playwright (>=0.7.2,<0.8.0)",
+    "pydantic-settings (>=2.13.1,<3.0.0)",
+    "aiopath (>=0.7.7,<0.8.0)",
+    "sqlmodel (>=0.0.38,<0.0.39)",
+    "fastapi (>=0.135.3,<0.136.0)",
+    "alembic (>=1.18.4,<2.0.0)",
+    "psycopg[binary] (>=3.3.3,<4.0.0)"
+]
+
+[tool.poetry]
+packages = [{include = "twd_life_tracker", from = "src"}]
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^26.3.1"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
