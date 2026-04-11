@@ -33,15 +33,15 @@ class AliasRepository(BaseAliasRepository):
     async def find_appearance_order_id(self, text: str) -> int | None:
         return (
             await self.session.exec(
-                sqlmodel.select(AppearanceFormTypeModel.id)
+                sqlmodel.select(AppearanceTypeModel.id)
                 .join(
-                    AppearanceFormTypeAliasModel,
-                    sqlmodel.col(AppearanceFormTypeModel.id)
-                    == AppearanceFormTypeAliasModel.ref_id,
+                    AppearanceTypeAliasModel,
+                    sqlmodel.col(AppearanceTypeModel.id)
+                    == AppearanceTypeAliasModel.ref_id,
                 )
                 .where(
                     sqlmodel.bindparam("text").like(
-                        AppearanceFormTypeAliasModel.label + "%"
+                        AppearanceTypeAliasModel.label + "%"
                     )
                 ),
                 params={"text": text},
@@ -58,16 +58,16 @@ class AliasRepository(BaseAliasRepository):
 
         return [
             *await self.session.exec(
-                sqlmodel.select(AppearanceTypeModel.id)
+                sqlmodel.select(AppearanceFormTypeModel.id)
                 .join(
-                    AppearanceTypeAliasModel,
-                    sqlmodel.col(AppearanceTypeModel.id)
-                    == AppearanceTypeAliasModel.ref_id,
+                    AppearanceFormTypeAliasModel,
+                    sqlmodel.col(AppearanceFormTypeModel.id)
+                    == AppearanceFormTypeAliasModel.ref_id,
                 )
                 .select_from(
                     alias_values.outerjoin(
-                        AppearanceTypeAliasModel,
-                        sqlmodel.col(AppearanceTypeAliasModel.label)
+                        AppearanceFormTypeAliasModel,
+                        sqlmodel.col(AppearanceFormTypeAliasModel.label)
                         == alias_values.c.alias,
                     )
                 )
