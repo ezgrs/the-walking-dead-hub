@@ -52,24 +52,24 @@ class AliasRepository(BaseAliasRepository):
     async def find_character_statuses_ids(
         self, aliases: typing.Sequence[str]
     ) -> list[int | None]:
-        alias_values = sqlmodel.values(
-            sqlmodel.column("alias", sqlmodel.VARCHAR(127)),
-        ).data([(alias,) for alias in aliases])
+        aliases_table = sqlmodel.values(
+            sqlmodel.column("idx", sqlmodel.Integer),
+            sqlmodel.column("label", sqlmodel.String),
+        ).data(
+            [(i, label) for i, label in enumerate(aliases)]
+        ).alias("aliases")
 
-        return [
-            *await self.session.exec(
-                sqlmodel.select(AppearanceFormTypeModel.id)
-                .join(
-                    AppearanceFormTypeAliasModel,
-                    sqlmodel.col(AppearanceFormTypeModel.id)
-                    == AppearanceFormTypeAliasModel.ref_id,
-                )
-                .select_from(
-                    alias_values.outerjoin(
-                        AppearanceFormTypeAliasModel,
-                        sqlmodel.col(AppearanceFormTypeAliasModel.label)
-                        == alias_values.c.alias,
-                    )
-                )
+        return [*await self.session.exec(
+            sqlmodel
+            .select(AppearanceFormTypeModel.id)
+            .select_from(aliases_table)
+            .outerjoin(
+                AppearanceFormTypeAliasModel,
+                sqlmodel.col(AppearanceFormTypeAliasModel.label) == aliases_table.c.label,
             )
-        ]
+            .join(
+                AppearanceFormTypeModel,
+                sqlmodel.col(AppearanceFormTypeModel.id) == AppearanceFormTypeAliasModel.ref_id,
+            )
+            .order_by(aliases_table.c.idx)
+        )]
