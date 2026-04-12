@@ -13,24 +13,29 @@ from . import PageLoader as BasePageLoader
 
 def run_worker_sync(
     request_queue: queue.Queue[str | None],
-    response_queue: queue.Queue[tuple[str, str]],
+    response_queue: queue.Queue[tuple[str, str] | Exception],
 ) -> None:
     if sys.platform == "win32":
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-    loop.run_until_complete(run_worker_async(
-        request_queue=request_queue,
-        response_queue=response_queue,
-    ))
-    loop.close()
+    try:
+        loop.run_until_complete(run_worker_async(
+            request_queue=request_queue,
+            response_queue=response_queue,
+        ))
+    except Exception as e:
+        response_queue.put(e)
+        raise
+    finally:
+        loop.close()
 
 
 async def run_worker_async(
     *,
     request_queue: queue.Queue[str | None],
-    response_queue: queue.Queue[tuple[str, str]],
+    response_queue: queue.Queue[tuple[str, str] | Exception],
 ) -> None:
     async with playwright.async_api.async_playwright() as p:
         async with await p.chromium.launch(headless=False) as browser:
@@ -49,7 +54,7 @@ async def run_worker_async(
 
 class PageLoader(BasePageLoader):
     request_queue: queue.Queue[str | None]
-    response_queue: queue.Queue[tuple[str, str]]
+    response_queue: queue.Queue[tuple[str, str] | Exception]
     worker: threading.Thread
 
     @typing.override
@@ -70,7 +75,11 @@ class PageLoader(BasePageLoader):
 
         def wait_result() -> str:
             while True:
-                current_href, content = self.response_queue.get()
+                response_data = self.response_queue.get()
+                if isinstance(response_data, Exception):
+                    raise response_data
+
+                current_href, content = response_data 
                 if current_href == href:
                     return content
 
