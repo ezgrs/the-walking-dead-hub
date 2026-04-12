@@ -4,8 +4,9 @@ import typing
 import redis.asyncio
 
 from twd_life_tracker.domain.models import EpisodePage
-from twd_life_tracker.domain.services.episode_page_loader import EpisodeLoader as BaseEpisodeLoader
-
+from twd_life_tracker.domain.services.episode_page_loader import (
+    EpisodeLoader as BaseEpisodeLoader,
+)
 
 
 class EpisodeLoader(BaseEpisodeLoader):
