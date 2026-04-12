@@ -1,37 +1,51 @@
 import asyncio
-import contextlib
 import types
 import typing
 
 import bs4
-import playwright.sync_api
+import playwright.async_api
 
 from . import PageLoader as BasePageLoader
 
 import multiprocessing
 import multiprocessing.queues
 
-def run_playwright_worker(
+
+def run_worker_sync(
     request_queue: multiprocessing.queues.Queue[str | None],
     response_queue: multiprocessing.queues.Queue[tuple[str, str]],
 ) -> None:
-    with playwright.sync_api.sync_playwright() as p:
-        with p.chromium.launch(
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    loop.run_until_complete(run_worker_async(
+        request_queue=request_queue,
+        response_queue=response_queue,
+    ))
+    loop.close()
+
+
+async def run_worker_async(
+    *,
+    request_queue: multiprocessing.queues.Queue[str | None],
+    response_queue: multiprocessing.queues.Queue[tuple[str, str]],
+) -> None:
+    async with playwright.async_api.async_playwright() as p:
+        async with await p.chromium.launch(
             executable_path="C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
             headless=False,
         ) as browser:
             while True:
-                href = request_queue.get()
-                print(href)
+                href = await asyncio.to_thread(request_queue.get)
                 if href is None:
                     break
 
-                with browser.new_page() as page:
-                    page.goto(f"https://walkingdead.fandom.com{href}")
-                    page.wait_for_selector("#Trivia")
-                    html = page.content()
+                async with await browser.new_page() as page:
+                    await page.goto(f"https://walkingdead.fandom.com{href}")
+                    await page.wait_for_selector("#Trivia")
+                    html = await page.content()
 
-                response_queue.put((href, html))
+                await asyncio.to_thread(response_queue.put, (href, html))
 
 
 class PageLoader(BasePageLoader):
@@ -45,10 +59,10 @@ class PageLoader(BasePageLoader):
         self.response_queue = multiprocessing.Queue()
 
         self.worker = multiprocessing.Process(
-            target=run_playwright_worker,
+            target=run_worker_sync,
             args=(self.request_queue, self.response_queue),
         )
-        await asyncio.to_thread(self.worker.start)
+        self.worker.start()
         return await super().__aenter__()
 
     @typing.override
