@@ -52,13 +52,19 @@ database_name=twd_character_stats
 poetry install
 ```
 
-4. Run database migrations to create all tables and populate some base data (e.g. enums and reference tables):
+4. Install the scraper's required browser:
+
+```bash
+poetry run playwright install chromium
+```
+
+5. Run database migrations to create all tables and populate some base data (e.g. enums and reference tables):
 
 ```bash
 poetry run alembic upgrade head
 ```
 
-5. The remaining data must be populated via scraping:
+6. The remaining data must be populated via scraping:
 
 ```bash
 poetry run python -m twd_life_tracker
@@ -87,7 +93,7 @@ cache_dir_path=./cache
 
 This will save scraped HTML locally to avoid re-downloading data and make subsequent runs much faster.
 
-6. Once the database is fully populated, you can run queries like:
+7. Once the database is fully populated, you can run queries like:
 
 ```sql
 select 
