@@ -27,6 +27,6 @@ class EpisodeLoader(BaseEpisodeLoader):
         await self.r.set(
             cache_key,
             episode_page.model_dump_json(),
-            ex=60,
+            ex=86400,
         )
         return episode_page
