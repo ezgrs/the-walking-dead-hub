@@ -21,10 +21,12 @@ def run_worker_sync(
     asyncio.set_event_loop(loop)
 
     try:
-        loop.run_until_complete(run_worker_async(
-            request_queue=request_queue,
-            response_queue=response_queue,
-        ))
+        loop.run_until_complete(
+            run_worker_async(
+                request_queue=request_queue,
+                response_queue=response_queue,
+            )
+        )
     except Exception as e:
         response_queue.put(e)
         raise
@@ -69,10 +71,10 @@ class PageLoader(BasePageLoader):
         self.response_queue = queue.Queue()
 
         # The asyncio.WindowsSelectorEventLoopPolicy is necessary for the main
-        # thread because psycopg requires it, otherwise it throws a 
+        # thread because psycopg requires it, otherwise it throws a
         # psycopg.InterfaceError (for instance, see https://stackoverflow.com/q/71219607).
         #
-        # However, Playwright uses asyncio.create_subprocess_exec under the 
+        # However, Playwright uses asyncio.create_subprocess_exec under the
         # hood, which throws NotImplementedError with that loop policy.
         # Therefore, a new thread with asyncio.WindowsProactorEventLoopPolicy
         # is required for Playwright to work properly.
@@ -95,7 +97,7 @@ class PageLoader(BasePageLoader):
                 if isinstance(response_data, Exception):
                     raise response_data
 
-                current_href, content = response_data 
+                current_href, content = response_data
                 if current_href == href:
                     return content
 
