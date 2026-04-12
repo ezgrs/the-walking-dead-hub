@@ -30,7 +30,7 @@ class AliasRepository(BaseAliasRepository):
         self.session = session
 
     @typing.override
-    async def find_appearance_order_id(self, text: str) -> int | None:
+    async def find_appearance_type_id(self, text: str) -> int | None:
         return (
             await self.session.exec(
                 sqlmodel.select(AppearanceTypeModel.id)
@@ -49,7 +49,7 @@ class AliasRepository(BaseAliasRepository):
         ).one_or_none()
 
     @typing.override
-    async def find_character_statuses_ids(
+    async def find_appearance_form_types_ids(
         self, aliases: typing.Sequence[str]
     ) -> list[int | None]:
         aliases_table = (

@@ -16,7 +16,7 @@ class TagParser(BaseTagParser[EntityAppearance | None]):
     async def parse(self, element: bs4.Tag) -> EntityAppearance | None:
         text = element.get_text()
         appearance_order_id = (
-            await self.alias_repository.find_appearance_order_id(text)
+            await self.alias_repository.find_appearance_type_id(text)
         )
         if appearance_order_id is None:
             return None
@@ -33,7 +33,7 @@ class TagParser(BaseTagParser[EntityAppearance | None]):
             )
             for appearance_type_alias, appearance_type_id in zip(
                 character_status_texts,
-                await self.alias_repository.find_character_statuses_ids(
+                await self.alias_repository.find_appearance_form_types_ids(
                     character_status_texts
                 ),
             ):
