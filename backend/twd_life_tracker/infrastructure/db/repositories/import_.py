@@ -4,13 +4,12 @@ import sqlmodel
 import sqlmodel.ext.asyncio.session
 
 
+from twd_life_tracker.domain.services.episode_page_loader import EpisodeLoader
 from twd_life_tracker.domain.interfaces.import_repository import (
     ImportRepository as BaseImportRepository,
 )
 
 from twd_life_tracker.domain.models import EpisodePage
-from twd_life_tracker.domain.services.page_loader import PageLoader
-from twd_life_tracker.domain.services.tag_parser import TagParser
 from twd_life_tracker.infrastructure.db.models.episode import EpisodeModel
 from twd_life_tracker.infrastructure.db.models.entity import EntityModel
 from twd_life_tracker.infrastructure.db.models.appearance import AppearanceModel
@@ -98,8 +97,7 @@ class ImportRepository(BaseImportRepository):
     async def import_data(
         self,
         *,
-        page_loader: PageLoader,
-        tag_parser: TagParser[EpisodePage],
+        loader: EpisodeLoader,
     ) -> None:
         episode_upsert = await Upsert.of(
             self.session,
@@ -129,65 +127,63 @@ class ImportRepository(BaseImportRepository):
             on_key=lambda appearance_form: appearance_form.appearance_id,
         )
 
-        async with page_loader:
-            current_episode: EpisodePage | None = None
-            while current_episode is None or (
-                current_episode.season_number,
-                current_episode.episode_number,
-            ) < (7, 16):
-                href: str
-                if current_episode is None:
-                    href = "/wiki/Days_Gone_Bye_(TV_Series)"
-                else:
-                    href = current_episode.next_page_href
+        current_episode: EpisodePage | None = None
+        while current_episode is None or (
+            current_episode.season_number,
+            current_episode.episode_number,
+        ) < (7, 16):
+            href: str
+            if current_episode is None:
+                href = "/wiki/Days_Gone_Bye_(TV_Series)"
+            else:
+                href = current_episode.next_page_href
 
-                episode_page_tag = await page_loader.load(href)
-                episode = await tag_parser.parse(episode_page_tag)
-                episode_model_id, _ = await episode_upsert.get_or_insert(
-                    href,
-                    on_insert=lambda: EpisodeModel(
+            episode_page = await loader.load(href)
+            episode_model_id, _ = await episode_upsert.get_or_insert(
+                href,
+                on_insert=lambda: EpisodeModel(
+                    id=None,
+                    name=episode_page.title,
+                    wiki_href=episode_page.href,
+                    season_number=episode_page.season_number,
+                    episode_number=episode_page.episode_number,
+                ),
+            )
+
+            for entity_appearance in episode_page.entity_appearances:
+                entity_page_href = entity_appearance.entity_page_href
+                entity_model_id, _ = await entity_upsert.get_or_insert(
+                    entity_page_href,
+                    on_insert=lambda: EntityModel(
                         id=None,
-                        name=episode.title,
-                        wiki_href=episode.href,
-                        season_number=episode.season_number,
-                        episode_number=episode.episode_number,
+                        name=entity_appearance.entity_name,
+                        wiki_href=entity_page_href,
                     ),
                 )
 
-                for entity_appearance in episode.entity_appearances:
-                    entity_page_href = entity_appearance.entity_page_href
-                    entity_model_id, _ = await entity_upsert.get_or_insert(
-                        entity_page_href,
-                        on_insert=lambda: EntityModel(
+                appearance_model_id, _ = (
+                    await appearance_upsert.get_or_insert(
+                        (episode_model_id, entity_model_id),
+                        on_insert=lambda: AppearanceModel(
                             id=None,
-                            name=entity_appearance.entity_name,
-                            wiki_href=entity_page_href,
+                            episode_id=episode_model_id,
+                            entity_id=entity_model_id,
+                            type_id=entity_appearance.appearance_type_id,
+                        ),
+                    )
+                )
+
+                for (
+                    appearance_form_type_id
+                ) in entity_appearance.appearance_form_types_ids:
+                    await appearance_form_upsert.get_or_insert(
+                        appearance_model_id,
+                        on_insert=lambda: AppearanceFormModel(
+                            id=None,
+                            appearance_id=appearance_model_id,
+                            type_id=appearance_form_type_id,
                         ),
                     )
 
-                    appearance_model_id, _ = (
-                        await appearance_upsert.get_or_insert(
-                            (episode_model_id, entity_model_id),
-                            on_insert=lambda: AppearanceModel(
-                                id=None,
-                                episode_id=episode_model_id,
-                                entity_id=entity_model_id,
-                                type_id=entity_appearance.appearance_type_id,
-                            ),
-                        )
-                    )
-
-                    for (
-                        appearance_form_type_id
-                    ) in entity_appearance.appearance_form_types_ids:
-                        await appearance_form_upsert.get_or_insert(
-                            appearance_model_id,
-                            on_insert=lambda: AppearanceFormModel(
-                                id=None,
-                                appearance_id=appearance_model_id,
-                                type_id=appearance_form_type_id,
-                            ),
-                        )
-
-                current_episode = episode
+            current_episode = episode_page
         await self.session.commit()

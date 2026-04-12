@@ -1,5 +1,7 @@
 import dataclasses
 
+import pydantic
+
 
 @dataclasses.dataclass(kw_only=True, frozen=True)
 class EntityAppearance:
@@ -11,8 +13,7 @@ class EntityAppearance:
     appearance_form_types_ids: list[int]
 
 
-@dataclasses.dataclass(kw_only=True, frozen=True)
-class EpisodePage:
+class EpisodePage(pydantic.BaseModel):
     href: str
     title: str
     season_number: int
