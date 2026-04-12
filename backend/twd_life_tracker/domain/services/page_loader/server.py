@@ -38,13 +38,19 @@ async def run_worker_async(
     response_queue: queue.Queue[tuple[str, str] | Exception],
 ) -> None:
     async with playwright.async_api.async_playwright() as p:
-        async with await p.chromium.launch(headless=False) as browser:
+        async with await p.chromium.launch() as browser:
             while True:
                 href = await asyncio.to_thread(request_queue.get)
                 if href is None:
                     break
 
-                async with await browser.new_page() as page:
+                async with await browser.new_page(
+                    # Makes headless browser look like a real browser
+                    # Without this, `page.wait_for_selector` timeouts
+                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+                    viewport={"width": 1280, "height": 800},
+                    locale="en-US",
+                ) as page:
                     await page.goto(f"https://walkingdead.fandom.com{href}")
                     await page.wait_for_selector("#Trivia")
                     html = await page.content()
