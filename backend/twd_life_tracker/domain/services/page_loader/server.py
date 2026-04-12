@@ -22,6 +22,7 @@ def run_playwright_worker(
         ) as browser:
             while True:
                 href = request_queue.get()
+                print(href)
                 if href is None:
                     break
 
