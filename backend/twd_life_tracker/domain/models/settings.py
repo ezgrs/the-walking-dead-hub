@@ -16,4 +16,10 @@ class Settings(pydantic_settings.BaseSettings):
     database_password: str
     database_name: str
 
+    redis_host: str
+    redis_port: int
+    redis_username: str
+    redis_password: str | None
+    redis_name: int | str
+
     cache_dir_path: pydantic.DirectoryPath | None = None
