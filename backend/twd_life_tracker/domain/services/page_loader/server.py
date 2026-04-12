@@ -1,20 +1,22 @@
 import asyncio
+import sys
 import types
 import typing
+import threading
+import queue
 
 import bs4
 import playwright.async_api
 
 from . import PageLoader as BasePageLoader
 
-import multiprocessing
-import multiprocessing.queues
-
 
 def run_worker_sync(
-    request_queue: multiprocessing.queues.Queue[str | None],
-    response_queue: multiprocessing.queues.Queue[tuple[str, str]],
+    request_queue: queue.Queue[str | None],
+    response_queue: queue.Queue[tuple[str, str]],
 ) -> None:
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
@@ -27,8 +29,8 @@ def run_worker_sync(
 
 async def run_worker_async(
     *,
-    request_queue: multiprocessing.queues.Queue[str | None],
-    response_queue: multiprocessing.queues.Queue[tuple[str, str]],
+    request_queue: queue.Queue[str | None],
+    response_queue: queue.Queue[tuple[str, str]],
 ) -> None:
     async with playwright.async_api.async_playwright() as p:
         async with await p.chromium.launch(
@@ -49,16 +51,16 @@ async def run_worker_async(
 
 
 class PageLoader(BasePageLoader):
-    request_queue: multiprocessing.queues.Queue[str | None]
-    response_queue: multiprocessing.queues.Queue[tuple[str, str]]
-    worker: multiprocessing.Process
+    request_queue: queue.Queue[str | None]
+    response_queue: queue.Queue[tuple[str, str]]
+    worker: threading.Thread
 
     @typing.override
     async def __aenter__(self) -> "PageLoader":
-        self.request_queue = multiprocessing.Queue()
-        self.response_queue = multiprocessing.Queue()
+        self.request_queue = queue.Queue()
+        self.response_queue = queue.Queue()
 
-        self.worker = multiprocessing.Process(
+        self.worker = threading.Thread(
             target=run_worker_sync,
             args=(self.request_queue, self.response_queue),
         )
