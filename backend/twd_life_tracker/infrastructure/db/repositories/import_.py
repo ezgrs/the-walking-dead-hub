@@ -162,7 +162,7 @@ class ImportRepository(BaseImportRepository):
                 )
 
                 appearance_model_id, _ = await appearance_upsert.get_or_insert(
-                    (episode_model_id, entity_model_id),
+                    (entity_model_id, episode_model_id),
                     on_insert=lambda: AppearanceModel(
                         id=None,
                         episode_id=episode_model_id,
