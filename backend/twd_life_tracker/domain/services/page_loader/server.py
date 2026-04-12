@@ -68,6 +68,16 @@ class PageLoader(BasePageLoader):
         self.request_queue = queue.Queue()
         self.response_queue = queue.Queue()
 
+        # The asyncio.WindowsSelectorEventLoopPolicy is necessary for the main
+        # thread because psycopg requires it, otherwise it throws a 
+        # psycopg.InterfaceError (for instance, see https://stackoverflow.com/q/71219607).
+        #
+        # However, Playwright uses asyncio.create_subprocess_exec under the 
+        # hood, which throws NotImplementedError with that loop policy.
+        # Therefore, a new thread with asyncio.WindowsProactorEventLoopPolicy
+        # is required for Playwright to work properly.
+        #
+        # Communication is made using `queue.Queue`s.
         self.worker = threading.Thread(
             target=run_worker_sync,
             args=(self.request_queue, self.response_queue),
