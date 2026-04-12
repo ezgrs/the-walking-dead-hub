@@ -33,10 +33,7 @@ async def run_worker_async(
     response_queue: queue.Queue[tuple[str, str]],
 ) -> None:
     async with playwright.async_api.async_playwright() as p:
-        async with await p.chromium.launch(
-            executable_path="C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
-            headless=False,
-        ) as browser:
+        async with await p.chromium.launch(headless=False) as browser:
             while True:
                 href = await asyncio.to_thread(request_queue.get)
                 if href is None:
