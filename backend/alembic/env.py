@@ -10,16 +10,16 @@ import sqlalchemy.ext.asyncio
 from alembic import context
 import sqlmodel
 
-from twd_life_tracker.domain.models.settings import Settings
-from twd_life_tracker.infrastructure.db.session import create_engine
-from twd_life_tracker.infrastructure.db.models.appearance import *
-from twd_life_tracker.infrastructure.db.models.appearance_form import *
-from twd_life_tracker.infrastructure.db.models.appearance_form_type import *
-from twd_life_tracker.infrastructure.db.models.appearance_form_type_alias import *
-from twd_life_tracker.infrastructure.db.models.appearance_type import *
-from twd_life_tracker.infrastructure.db.models.appearance_type_alias import *
-from twd_life_tracker.infrastructure.db.models.entity import *
-from twd_life_tracker.infrastructure.db.models.episode import *
+from twd_hub.domain.models.settings import Settings
+from twd_hub.infrastructure.db.session import create_engine
+from twd_hub.infrastructure.db.models.appearance import *
+from twd_hub.infrastructure.db.models.appearance_form import *
+from twd_hub.infrastructure.db.models.appearance_form_type import *
+from twd_hub.infrastructure.db.models.appearance_form_type_alias import *
+from twd_hub.infrastructure.db.models.appearance_type import *
+from twd_hub.infrastructure.db.models.appearance_type_alias import *
+from twd_hub.infrastructure.db.models.entity import *
+from twd_hub.infrastructure.db.models.episode import *
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
