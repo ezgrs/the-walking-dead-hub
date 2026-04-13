@@ -11,12 +11,3 @@ class EntityAppearance:
 
     appearance_type_id: int
     appearance_form_types_ids: list[int]
-
-
-class EpisodePage(pydantic.BaseModel):
-    href: str
-    title: str
-    season_number: int
-    episode_number: int
-    entity_appearances: list[EntityAppearance]
-    next_page_href: str

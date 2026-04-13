@@ -3,7 +3,7 @@ import typing
 
 import redis.asyncio
 
-from twd_hub.domain.models import EpisodePage
+from twd_hub.domain.models.episode_page import EpisodePage
 from twd_hub.domain.services.episode_page_loader import (
     EpisodeLoader as BaseEpisodeLoader,
 )

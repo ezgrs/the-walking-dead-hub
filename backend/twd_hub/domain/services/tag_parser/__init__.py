@@ -2,7 +2,8 @@ import abc
 
 import bs4
 
-from twd_hub.domain.models import EntityAppearance, EpisodePage
+from twd_hub.domain.models import EntityAppearance
+from twd_hub.domain.models.episode_page import EpisodePage
 from twd_hub.domain.interfaces.alias_repository import AliasRepository
 
 

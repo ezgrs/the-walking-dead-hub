@@ -6,11 +6,11 @@ from twd_hub.domain.interfaces.appearance_form_repository import (
 from twd_hub.domain.interfaces.appearance_repository import AppearanceRepository
 from twd_hub.domain.interfaces.entity_repository import EntityRepository
 from twd_hub.domain.interfaces.episode_repository import EpisodeRepository
-from twd_hub.domain.models import EpisodePage
 from twd_hub.domain.models.appearance import AppearanceBase
 from twd_hub.domain.models.appearance_form import AppearanceFormBase
 from twd_hub.domain.models.entity import EntityBase
 from twd_hub.domain.models.episode import EpisodeBase
+from twd_hub.domain.models.episode_page import EpisodePage
 from twd_hub.domain.services.database_initializer import (
     DatabaseInitializer as BaseDatabaseInitializer,
 )
@@ -67,30 +67,33 @@ class DatabaseInitializer(BaseDatabaseInitializer):
             on_key=lambda appearance_form: appearance_form.appearance_id,
         )
 
-        current_episode: EpisodePage | None = None
-        while current_episode is None or (
+        analyzed_page: EpisodePage | None = None
+        while analyzed_page is None or (
             until is not None
-            and (current_episode.season_number, current_episode.episode_number)
+            and (
+                analyzed_page.episode.season_number,
+                analyzed_page.episode.episode_number,
+            )
             < until
         ):
             href: str
-            if current_episode is None:
+            if analyzed_page is None:
                 href = initial_page_href
             else:
-                href = current_episode.next_page_href
+                href = analyzed_page.next_page_href
 
-            episode_page = await self.loader.load(href)
+            current_page = await self.loader.load(href)
             episode_model_id, _ = await episode_upsert.get_or_insert(
                 href,
                 on_insert=lambda: EpisodeBase(
-                    name=episode_page.title,
-                    wiki_href=episode_page.href,
-                    season_number=episode_page.season_number,
-                    episode_number=episode_page.episode_number,
+                    name=current_page.episode.name,
+                    wiki_href=current_page.episode.wiki_href,
+                    season_number=current_page.episode.season_number,
+                    episode_number=current_page.episode.episode_number,
                 ),
             )
 
-            for entity_appearance in episode_page.entity_appearances:
+            for entity_appearance in current_page.entity_appearances:
                 entity_page_href = entity_appearance.entity_page_href
                 entity_model_id, _ = await entity_upsert.get_or_insert(
                     entity_page_href,
@@ -120,4 +123,4 @@ class DatabaseInitializer(BaseDatabaseInitializer):
                         ),
                     )
 
-            current_episode = episode_page
+            analyzed_page = current_page

@@ -1,8 +1,11 @@
 import re
 import typing
 import bs4
+
 from . import TagParser as BaseTagParser
-from twd_hub.domain.models import EpisodePage, EntityAppearance
+from twd_hub.domain.models.episode import EpisodeBase
+from twd_hub.domain.models import EntityAppearance
+from twd_hub.domain.models.episode_page import EpisodePage
 
 
 class TagParser(BaseTagParser[EpisodePage]):
@@ -84,10 +87,12 @@ class TagParser(BaseTagParser[EpisodePage]):
         assert isinstance(next_page_href, str)
 
         return EpisodePage(
-            href=episode_href,
-            title=episode_title,
-            season_number=episode_season,
-            episode_number=episode_number,
+            episode=EpisodeBase(
+                name=episode_title,
+                wiki_href=episode_href,
+                season_number=episode_season,
+                episode_number=episode_number,
+            ),
             entity_appearances=entity_appearances,
             next_page_href=next_page_href,
         )

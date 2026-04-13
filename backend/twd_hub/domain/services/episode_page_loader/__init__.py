@@ -2,7 +2,7 @@ import abc
 import redis.asyncio
 
 
-from twd_hub.domain.models import EpisodePage
+from twd_hub.domain.models.episode_page import EpisodePage
 from twd_hub.domain.services.page_loader import PageLoader
 from twd_hub.domain.services.tag_parser import TagParser
 
