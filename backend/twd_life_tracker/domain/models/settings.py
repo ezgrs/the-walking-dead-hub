@@ -21,5 +21,3 @@ class Settings(pydantic_settings.BaseSettings):
     redis_username: str
     redis_password: str | None
     redis_name: int | str
-
-    cache_dir_path: pydantic.DirectoryPath | None = None
