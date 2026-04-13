@@ -69,7 +69,7 @@ async def read_all(
 class DataOut(pydantic.BaseModel):
     episode: EpisodeModel
     appearance_type_label: str
-    appearance_form_type_label: str
+    appearance_form_type_label: str | None
 
 
 @router.get("/{entity_id}")

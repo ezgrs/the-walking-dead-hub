@@ -50,7 +50,7 @@ class DataOut(pydantic.BaseModel):
     episode: EpisodeModel
     entity: EntityModel
     appearance_type_label: str
-    appearance_form_type_label: str
+    appearance_form_type_label: str | None
 
 
 @router.get("/{season_number}")
