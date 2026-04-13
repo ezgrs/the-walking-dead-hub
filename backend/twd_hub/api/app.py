@@ -37,9 +37,7 @@ def create_app() -> fastapi.FastAPI:
 
     lifespan = twd_hub.api.fastapi_lifespan_dependencies.Lifespan()
     lifespan.register(twd_hub.api.dependencies.settings.evaluate)
-    lifespan.register(
-        twd_hub.api.dependencies.database_engine.evaluate
-    )
+    lifespan.register(twd_hub.api.dependencies.database_engine.evaluate)
 
     app = fastapi.FastAPI(
         title="The Walking Dead Hub",
@@ -85,11 +83,7 @@ def create_app() -> fastapi.FastAPI:
             request, exc
         )
 
-    app.include_router(
-        twd_hub.api.routers.entities.router, prefix="/entities"
-    )
-    app.include_router(
-        twd_hub.api.routers.seasons.router, prefix="/seasons"
-    )
+    app.include_router(twd_hub.api.routers.entities.router, prefix="/entities")
+    app.include_router(twd_hub.api.routers.seasons.router, prefix="/seasons")
 
     return app
