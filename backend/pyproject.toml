@@ -22,10 +22,14 @@ dependencies = [
 [tool.poetry]
 packages = [{include = "twd_life_tracker", from = "src"}]
 
-
 [tool.poetry.group.dev.dependencies]
 black = "^26.3.1"
+poethepoet = "^0.44.0"
+uvicorn = "^0.44.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poe.tasks]
+serve = "uvicorn --factory twd_life_tracker.api.app:create_app --port 5000 --reload --log-config log_config.yaml"
