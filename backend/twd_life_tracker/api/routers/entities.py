@@ -2,6 +2,7 @@ import typing
 import fastapi
 import pydantic
 import sqlmodel
+import http.client
 
 from twd_life_tracker.infrastructure.db.models.appearance import (
     AppearanceModel,
@@ -66,55 +67,73 @@ async def read_all(
     ]
 
 
-class DataOut(pydantic.BaseModel):
+class EpisodeDataOut(pydantic.BaseModel):
     episode: EpisodeModel
     appearance_type_label: str
     appearance_form_type_label: str | None
+
+
+class DataOut(pydantic.BaseModel):
+    entity: EntityModel
+    episodes: list[EpisodeDataOut]
 
 
 @router.get("/{entity_id}")
 async def read_data(
     session: twd_life_tracker.api.dependencies.database_session.Dependency,
     entity_id: typing.Annotated[int, fastapi.Path()],
-) -> list[DataOut]:
-    return [
-        DataOut(
-            episode=episode,
-            appearance_type_label=appearance_type_label,
-            appearance_form_type_label=appearance_form_type_label,
+) -> DataOut:
+    entity_model = (
+        await session.exec(
+            sqlmodel
+            .select(EntityModel)
+            .where(EntityModel.id == entity_id)
+            .limit(1)
         )
-        for (
-            episode,
-            appearance_type_label,
-            appearance_form_type_label,
-        ) in await session.exec(
-            sqlmodel.select(
-                EpisodeModel,
-                AppearanceTypeModel.name,
-                AppearanceFormTypeModel.name,
+    ).one_or_none()
+    if entity_model is None:
+        raise fastapi.HTTPException(status_code=http.client.NOT_FOUND)
+    return DataOut(
+        entity=entity_model,
+        episodes=[
+            EpisodeDataOut(
+                episode=episode,
+                appearance_type_label=appearance_type_label,
+                appearance_form_type_label=appearance_form_type_label,
             )
-            .join(
-                AppearanceModel,
-                sqlmodel.col(AppearanceModel.episode_id) == EpisodeModel.id,
+            for (
+                episode,
+                appearance_type_label,
+                appearance_form_type_label,
+            ) in await session.exec(
+                sqlmodel.select(
+                    EpisodeModel,
+                    AppearanceTypeModel.name,
+                    AppearanceFormTypeModel.name,
+                )
+                .join(
+                    AppearanceModel,
+                    sqlmodel.col(AppearanceModel.episode_id) == EpisodeModel.id,
+                )
+                .join(
+                    AppearanceTypeModel,
+                    sqlmodel.col(AppearanceTypeModel.id) == AppearanceModel.type_id,
+                )
+                .outerjoin(
+                    AppearanceFormModel,
+                    sqlmodel.col(AppearanceFormModel.appearance_id)
+                    == AppearanceModel.id,
+                )
+                .outerjoin(
+                    AppearanceFormTypeModel,
+                    sqlmodel.col(AppearanceFormTypeModel.id)
+                    == AppearanceFormModel.type_id,
+                )
+                .where(AppearanceModel.entity_id == entity_id)
+                .order_by(
+                    sqlmodel.col(EpisodeModel.season_number),
+                    sqlmodel.col(EpisodeModel.episode_number),
+                )
             )
-            .join(
-                AppearanceTypeModel,
-                sqlmodel.col(AppearanceTypeModel.id) == AppearanceModel.type_id,
-            )
-            .outerjoin(
-                AppearanceFormModel,
-                sqlmodel.col(AppearanceFormModel.appearance_id)
-                == AppearanceModel.id,
-            )
-            .outerjoin(
-                AppearanceFormTypeModel,
-                sqlmodel.col(AppearanceFormTypeModel.id)
-                == AppearanceFormModel.type_id,
-            )
-            .where(AppearanceModel.entity_id == entity_id)
-            .order_by(
-                sqlmodel.col(EpisodeModel.season_number),
-                sqlmodel.col(EpisodeModel.episode_number),
-            )
-        )
-    ]
+        ],
+    )
