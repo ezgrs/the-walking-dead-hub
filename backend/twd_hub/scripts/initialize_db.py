@@ -98,7 +98,9 @@ async def main() -> None:
             appearance_form_repository=appearance_form_repository,
         )
         async with page_loader:
-            await db_initializer.run(until=(7, 16))
+            await db_initializer.run(
+                "/wiki/Days_Gone_Bye_(TV_Series)", until=(7, 16)
+            )
 
         await session.commit()
 

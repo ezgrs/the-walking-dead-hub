@@ -40,7 +40,9 @@ class DatabaseInitializer(BaseDatabaseInitializer):
         self.appearance_form_repository = appearance_form_repository
 
     @typing.override
-    async def run(self, *, until: typing.Optional[tuple[int, int]]) -> None:
+    async def run(
+        self, initial_page_href: str, *, until: typing.Optional[tuple[int, int]]
+    ) -> None:
         episode_upsert = await Upsert.of(
             self.episode_repository,
             on_id=lambda episode: episode.id,
@@ -73,7 +75,7 @@ class DatabaseInitializer(BaseDatabaseInitializer):
         ):
             href: str
             if current_episode is None:
-                href = "/wiki/Days_Gone_Bye_(TV_Series)"
+                href = initial_page_href
             else:
                 href = current_episode.next_page_href
 
