@@ -71,7 +71,7 @@ poetry run alembic upgrade head
 5. Populate the remaining data via scraping:
 
 ```bash
-poetry run python -m twd_life_tracker
+poetry run python -m twd_life_tracker.scripts.initialize_db
 ```
 
 This step will:
