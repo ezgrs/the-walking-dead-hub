@@ -71,7 +71,7 @@ poetry run alembic upgrade head
 5. Populate the remaining data via scraping:
 
 ```bash
-poetry run python -m twd_life_tracker.scripts.initialize_db
+poetry run python -m twd_hub.scripts.initialize_db
 ```
 
 This step will:
@@ -84,7 +84,7 @@ This step will:
 Optionally, to speed up future runs, you can cache downloaded HTML pages:
 
 ```bash
-poetry run python -m twd_life_tracker.scripts.initialize_db --cache-dir .tmp
+poetry run python -m twd_hub.scripts.initialize_db --cache-dir .tmp
 ```
 
 This will save scraped HTML locally to avoid re-downloading data and make subsequent runs much faster.
