@@ -46,11 +46,15 @@ async def read_indices(
     ]
 
 
-class DataOut(pydantic.BaseModel):
-    episode: EpisodeModel
+class EntityDataOut(pydantic.BaseModel):
     entity: EntityModel
     appearance_type_label: str
     appearance_form_type_label: str | None
+
+
+class DataOut(pydantic.BaseModel):
+    episode: EpisodeModel
+    appearances: list[EntityDataOut]
 
 
 @router.get("/{season_number}")
@@ -58,51 +62,61 @@ async def read_data(
     session: twd_life_tracker.api.dependencies.database_session.Dependency,
     season_number: typing.Annotated[int, fastapi.Path()],
 ) -> list[DataOut]:
+    episodes_mapping: dict[int, EpisodeModel] = {}
+    appearances_mapping: dict[int, list[EntityDataOut]] = {}
+    for (
+        episode,
+        entity,
+        appearance_type_label,
+        appearance_form_type_label,
+    ) in await session.exec(
+        sqlmodel.select(
+            EpisodeModel,
+            EntityModel,
+            AppearanceTypeModel.name,
+            AppearanceFormTypeModel.name,
+        )
+        .join(
+            AppearanceModel,
+            sqlmodel.col(AppearanceModel.episode_id) == EpisodeModel.id,
+        )
+        .join(
+            EntityModel,
+            sqlmodel.col(EntityModel.id) == AppearanceModel.entity_id,
+        )
+        .join(
+            AppearanceTypeModel,
+            sqlmodel.col(AppearanceTypeModel.id) == AppearanceModel.type_id,
+        )
+        .outerjoin(
+            AppearanceFormModel,
+            sqlmodel.col(AppearanceFormModel.appearance_id)
+            == AppearanceModel.id,
+        )
+        .outerjoin(
+            AppearanceFormTypeModel,
+            sqlmodel.col(AppearanceFormTypeModel.id)
+            == AppearanceFormModel.type_id,
+        )
+        .where(sqlmodel.col(EpisodeModel.season_number) == season_number)
+        .order_by(
+            sqlmodel.col(EpisodeModel.season_number),
+            sqlmodel.col(EpisodeModel.episode_number),
+            sqlmodel.col(EntityModel.id),
+        )
+    ):
+        episodes_mapping.setdefault(episode.episode_number, episode)
+        appearances_mapping.setdefault(episode.episode_number, []).append(
+            EntityDataOut(
+                entity=entity,
+                appearance_type_label=appearance_type_label,
+                appearance_form_type_label=appearance_form_type_label,
+            )
+        )
     return [
         DataOut(
             episode=episode,
-            entity=entity,
-            appearance_type_label=appearance_type_label,
-            appearance_form_type_label=appearance_form_type_label,
+            appearances=appearances_mapping.get(episode_number, []),
         )
-        for (
-            episode,
-            entity,
-            appearance_type_label,
-            appearance_form_type_label,
-        ) in await session.exec(
-            sqlmodel.select(
-                EpisodeModel,
-                EntityModel,
-                AppearanceTypeModel.name,
-                AppearanceFormTypeModel.name,
-            )
-            .join(
-                AppearanceModel,
-                sqlmodel.col(AppearanceModel.episode_id) == EpisodeModel.id,
-            )
-            .join(
-                EntityModel,
-                sqlmodel.col(EntityModel.id) == AppearanceModel.entity_id,
-            )
-            .join(
-                AppearanceTypeModel,
-                sqlmodel.col(AppearanceTypeModel.id) == AppearanceModel.type_id,
-            )
-            .outerjoin(
-                AppearanceFormModel,
-                sqlmodel.col(AppearanceFormModel.appearance_id)
-                == AppearanceModel.id,
-            )
-            .outerjoin(
-                AppearanceFormTypeModel,
-                sqlmodel.col(AppearanceFormTypeModel.id)
-                == AppearanceFormModel.type_id,
-            )
-            .where(sqlmodel.col(EpisodeModel.season_number) == season_number)
-            .order_by(
-                sqlmodel.col(EpisodeModel.season_number),
-                sqlmodel.col(EpisodeModel.episode_number),
-            )
-        )
+        for episode_number, episode in sorted(episodes_mapping.items(), key=lambda i: i[0])
     ]
