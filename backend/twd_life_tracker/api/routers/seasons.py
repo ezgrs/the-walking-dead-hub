@@ -118,5 +118,7 @@ async def read_data(
             episode=episode,
             appearances=appearances_mapping.get(episode_number, []),
         )
-        for episode_number, episode in sorted(episodes_mapping.items(), key=lambda i: i[0])
+        for episode_number, episode in sorted(
+            episodes_mapping.items(), key=lambda i: i[0]
+        )
     ]

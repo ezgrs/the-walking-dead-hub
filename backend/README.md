@@ -81,18 +81,10 @@ This step will:
 * Complete the database
 
 
-Optionally, to speed up future runs, you can cache downloaded HTML pages.
+Optionally, to speed up future runs, you can cache downloaded HTML pages:
 
-Add the following entry to your `.env` before running the scraper:
-
-```env
-cache_dir_path=/path/to/cache/folder
-```
-
-Example:
-
-```env
-cache_dir_path=./cache
+```bash
+poetry run python -m twd_life_tracker.scripts.initialize_db --cache-dir .tmp
 ```
 
 This will save scraped HTML locally to avoid re-downloading data and make subsequent runs much faster.

@@ -85,8 +85,7 @@ async def read_data(
 ) -> DataOut:
     entity_model = (
         await session.exec(
-            sqlmodel
-            .select(EntityModel)
+            sqlmodel.select(EntityModel)
             .where(EntityModel.id == entity_id)
             .limit(1)
         )
@@ -117,7 +116,8 @@ async def read_data(
                 )
                 .join(
                     AppearanceTypeModel,
-                    sqlmodel.col(AppearanceTypeModel.id) == AppearanceModel.type_id,
+                    sqlmodel.col(AppearanceTypeModel.id)
+                    == AppearanceModel.type_id,
                 )
                 .outerjoin(
                     AppearanceFormModel,

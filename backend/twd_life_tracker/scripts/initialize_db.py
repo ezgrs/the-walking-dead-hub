@@ -7,12 +7,13 @@ import aiopath
 import redis.asyncio
 
 from twd_life_tracker.domain.interfaces.alias_repository import AliasRepository
-from twd_life_tracker.domain.interfaces.import_repository import ImportRepository
+from twd_life_tracker.domain.interfaces.import_repository import (
+    ImportRepository,
+)
 from twd_life_tracker.domain.models.settings import Settings
 from twd_life_tracker.domain.services.episode_page_loader import EpisodeLoader
 from twd_life_tracker.domain.services.page_loader import PageLoader
 from twd_life_tracker.domain.services.tag_parser import TagParser
-
 
 
 async def run(
@@ -24,9 +25,9 @@ async def run(
     page_loader = PageLoader.from_server()
     if cache_dir_path is not None:
         dpath = aiopath.Path(cache_dir_path)
-        page_loader = page_loader.with_write_through_cache(dpath).with_read_through_cache(
+        page_loader = page_loader.with_write_through_cache(
             dpath
-        )
+        ).with_read_through_cache(dpath)
 
     episode_loader = (
         EpisodeLoader.from_server(
@@ -60,14 +61,21 @@ def _parse_sys_args() -> argparse.Namespace:
     )
     return parser.parse_args()
 
+
 async def _main() -> None:
     from twd_life_tracker.infrastructure.db.session import create_engine
-    from twd_life_tracker.infrastructure.db.repositories.alias import AliasRepository
-    from twd_life_tracker.infrastructure.db.repositories.import_ import ImportRepository
+    from twd_life_tracker.infrastructure.db.repositories.alias import (
+        AliasRepository,
+    )
+    from twd_life_tracker.infrastructure.db.repositories.import_ import (
+        ImportRepository,
+    )
     import sqlmodel.ext.asyncio.session
 
     args_namespace = _parse_sys_args()
-    cache_dir_path = typing.cast(typing.Optional[os.PathLike], args_namespace.cache_dir)
+    cache_dir_path = typing.cast(
+        typing.Optional[os.PathLike], args_namespace.cache_dir
+    )
 
     settings = Settings()  # pyright: ignore[reportCallIssue]
 
