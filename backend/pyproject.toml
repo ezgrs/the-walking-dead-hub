@@ -32,4 +32,5 @@ requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poe.tasks]
+format = "black -l 80 twd_hub"
 serve = "uvicorn --factory twd_hub.api.app:create_app --port 5000 --reload --log-config log_config.yaml"
