@@ -1,6 +1,5 @@
 import typing
 from twd_hub.application.services.episode_page_scraper import (
-    DefaultEpisodePageScraper,
     EpisodePageScraper,
 )
 from twd_hub.domain.interfaces import Upsert
@@ -10,8 +9,6 @@ from twd_hub.domain.interfaces.appearance_form_repository import (
 from twd_hub.domain.interfaces.appearance_repository import AppearanceRepository
 from twd_hub.domain.interfaces.entity_repository import EntityRepository
 from twd_hub.domain.interfaces.episode_repository import EpisodeRepository
-from twd_hub.domain.interfaces.html_loader_service import HtmlLoader
-from twd_hub.domain.interfaces.html_parser_service import HtmlParser
 from twd_hub.domain.models.appearance import AppearanceBase
 from twd_hub.domain.models.appearance_form import AppearanceFormBase
 from twd_hub.domain.models.entity import EntityBase

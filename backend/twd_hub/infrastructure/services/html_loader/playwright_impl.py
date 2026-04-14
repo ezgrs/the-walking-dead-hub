@@ -5,7 +5,6 @@ import typing
 import threading
 import queue
 
-import bs4
 import playwright.async_api
 
 from twd_hub.domain.interfaces.html_loader_service import HtmlLoader

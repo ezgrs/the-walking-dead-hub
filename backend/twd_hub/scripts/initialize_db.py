@@ -12,9 +12,7 @@ from twd_hub.application.services.database_initializer import (
 )
 from twd_hub.application.services.episode_page_scraper import (
     DefaultEpisodePageScraper,
-    EpisodePageScraper,
 )
-from twd_hub.domain.interfaces.alias_repository import AliasRepository
 from twd_hub.domain.models.settings import Settings
 from twd_hub.infrastructure.db.repositories.appearance import (
     AppearanceRepository,

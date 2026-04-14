@@ -5,8 +5,6 @@ from twd_hub.application.services.episode_page_scraper import (
     EpisodePageScraper,
 )
 from twd_hub.domain.interfaces.cache_store_service import CacheStore
-from twd_hub.domain.interfaces.html_loader_service import HtmlLoader
-from twd_hub.domain.interfaces.html_parser_service import HtmlParser
 from twd_hub.domain.models.episode_page import EpisodePage
 
 
