@@ -26,7 +26,7 @@ packages = [{include = "twd_hub"}]
 black = "^26.3.1"
 poethepoet = "^0.44.0"
 uvicorn = "^0.44.0"
-mypy = "^1.20.1"
+pyright = "^1.1.408"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
