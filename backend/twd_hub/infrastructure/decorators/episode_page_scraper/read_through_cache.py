@@ -2,7 +2,6 @@ import json
 import typing
 import urllib.parse
 from twd_hub.application.services.episode_page_scraper import (
-    DefaultEpisodePageScraper,
     EpisodePageScraper,
 )
 from twd_hub.domain.interfaces.cache_store_service import CacheStore
@@ -15,8 +14,11 @@ class ReadThroughCacheEpisodePageScraper(EpisodePageScraper):
     scraper: EpisodePageScraper
     cache: CacheStore
 
-    def __init__(self, scraper: EpisodePageScraper) -> None:
+    def __init__(
+        self, scraper: EpisodePageScraper, *, cache: CacheStore
+    ) -> None:
         self.scraper = scraper
+        self.cache = cache
 
     @typing.override
     async def scrape(

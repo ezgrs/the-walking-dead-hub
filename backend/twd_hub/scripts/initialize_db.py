@@ -42,6 +42,9 @@ from twd_hub.infrastructure.decorators.html_loader.write_through_cache import (
 from twd_hub.infrastructure.services.cache_store.aiopath_impl import (
     AiopathCacheStore,
 )
+from twd_hub.infrastructure.services.cache_store.redis_impl import (
+    RedisCacheStore,
+)
 from twd_hub.infrastructure.services.html_loader.playwright_impl import (
     PlaywrightHtmlLoader,
 )
@@ -72,7 +75,7 @@ async def main() -> None:
 
     settings = Settings()  # pyright: ignore[reportCallIssue]
 
-    cache = redis.asyncio.Redis(
+    r = redis.asyncio.Redis(
         host=settings.redis_host,
         port=settings.redis_port,
         username=settings.redis_username,
@@ -98,15 +101,18 @@ async def main() -> None:
 
         html_parser = Bs4HtmlParser(alias_repository=alias_repository)
 
+        episode_page_cache = RedisCacheStore(r)
         episode_page_scraper = DefaultEpisodePageScraper(
             html_loader=html_loader,
             html_parser=html_parser,
         )
         episode_page_scraper = WriteThroughCacheEpisodePageScraper(
             episode_page_scraper,
+            cache=episode_page_cache,
         )
         episode_page_scraper = ReadThroughCacheEpisodePageScraper(
             episode_page_scraper,
+            cache=episode_page_cache,
         )
 
         db_initializer = DatabaseInitializer(

@@ -1,4 +1,3 @@
-import json
 import typing
 import urllib.parse
 from twd_hub.application.services.episode_page_scraper import EpisodePageScraper
@@ -10,8 +9,11 @@ class WriteThroughCacheEpisodePageScraper(EpisodePageScraper):
     scraper: EpisodePageScraper
     cache: CacheStore
 
-    def __init__(self, scraper: EpisodePageScraper) -> None:
+    def __init__(
+        self, scraper: EpisodePageScraper, *, cache: CacheStore
+    ) -> None:
         self.scraper = scraper
+        self.cache = cache
 
     @typing.override
     async def scrape(
