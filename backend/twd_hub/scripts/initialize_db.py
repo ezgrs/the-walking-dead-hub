@@ -7,14 +7,15 @@ import aiopath
 import redis.asyncio
 import sqlmodel.ext.asyncio.session
 
-from twd_hub.domain.interfaces.alias_repository import AliasRepository
-from twd_hub.domain.models.settings import Settings
-from twd_hub.domain.services.database_initializer.server import (
+from twd_hub.application.services.database_initializer import (
     DatabaseInitializer,
 )
-from twd_hub.domain.services.episode_page_loader import EpisodeLoader
-from twd_hub.domain.services.page_loader import PageLoader
-from twd_hub.domain.services.tag_parser import TagParser
+from twd_hub.application.services.episode_page_scraper import (
+    DefaultEpisodePageScraper,
+    EpisodePageScraper,
+)
+from twd_hub.domain.interfaces.alias_repository import AliasRepository
+from twd_hub.domain.models.settings import Settings
 from twd_hub.infrastructure.db.repositories.appearance import (
     AppearanceRepository,
 )
@@ -26,6 +27,25 @@ from twd_hub.infrastructure.db.repositories.episode import EpisodeRepository
 
 from twd_hub.infrastructure.db.session import create_engine
 from twd_hub.infrastructure.db.repositories.alias import AliasRepository
+from twd_hub.infrastructure.decorators.episode_page_scraper.read_through_cache import (
+    ReadThroughCacheEpisodePageScraper,
+)
+from twd_hub.infrastructure.decorators.episode_page_scraper.write_through_cache import (
+    WriteThroughCacheEpisodePageScraper,
+)
+from twd_hub.infrastructure.decorators.html_loader.read_through_cache import (
+    ReadThroughCacheHtmlLoader,
+)
+from twd_hub.infrastructure.decorators.html_loader.write_through_cache import (
+    WriteThroughCacheHtmlLoader,
+)
+from twd_hub.infrastructure.services.cache_store.aiopath_impl import (
+    AiopathCacheStore,
+)
+from twd_hub.infrastructure.services.html_loader.playwright_impl import (
+    PlaywrightHtmlLoader,
+)
+from twd_hub.infrastructure.services.html_parser.bs4_impl import Bs4HtmlParser
 
 
 def _parse_sys_args() -> argparse.Namespace:
@@ -60,12 +80,11 @@ async def main() -> None:
         db=settings.redis_name,
     )
 
-    page_loader = PageLoader.from_server()
+    html_loader = PlaywrightHtmlLoader()
     if cache_dir_path is not None:
-        dpath = aiopath.Path(cache_dir_path)
-        page_loader = page_loader.with_write_through_cache(
-            dpath
-        ).with_read_through_cache(dpath)
+        html_cache = AiopathCacheStore(base_dir=aiopath.Path(cache_dir_path))
+        html_loader = WriteThroughCacheHtmlLoader(html_loader, cache=html_cache)
+        html_loader = ReadThroughCacheHtmlLoader(html_loader, cache=html_cache)
 
     async with sqlmodel.ext.asyncio.session.AsyncSession(
         create_engine(settings),
@@ -77,29 +96,30 @@ async def main() -> None:
         appearance_repository = AppearanceRepository(session)
         appearance_form_repository = AppearanceFormRepository(session)
 
-        episode_loader = (
-            EpisodeLoader.from_server(
-                page_loader=page_loader,
-                tag_parser=TagParser.episode_page(
-                    entity_appearance_parser=TagParser.entity_appearance(
-                        alias_repository=alias_repository,
-                    ),
-                ),
-            )
-            .with_write_through_cache(cache)
-            .with_read_through_cache(cache)
+        html_parser = Bs4HtmlParser(alias_repository=alias_repository)
+
+        episode_page_scraper = DefaultEpisodePageScraper(
+            html_loader=html_loader,
+            html_parser=html_parser,
+        )
+        episode_page_scraper = WriteThroughCacheEpisodePageScraper(
+            episode_page_scraper,
+        )
+        episode_page_scraper = ReadThroughCacheEpisodePageScraper(
+            episode_page_scraper,
         )
 
         db_initializer = DatabaseInitializer(
-            loader=episode_loader,
+            episode_page_scraper=episode_page_scraper,
             episode_repository=episode_repository,
             entity_repository=entity_repository,
             appearance_repository=appearance_repository,
             appearance_form_repository=appearance_form_repository,
         )
-        async with page_loader:
+        async with html_loader:
             await db_initializer.run(
-                "/wiki/Days_Gone_Bye_(TV_Series)", until=(7, 16)
+                initial_page_href="/wiki/Days_Gone_Bye_(TV_Series)",
+                load_until=(7, 16),
             )
 
         await session.commit()

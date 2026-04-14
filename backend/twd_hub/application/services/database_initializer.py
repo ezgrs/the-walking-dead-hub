@@ -1,4 +1,8 @@
 import typing
+from twd_hub.application.services.episode_page_scraper import (
+    DefaultEpisodePageScraper,
+    EpisodePageScraper,
+)
 from twd_hub.domain.interfaces import Upsert
 from twd_hub.domain.interfaces.appearance_form_repository import (
     AppearanceFormRepository,
@@ -6,19 +10,17 @@ from twd_hub.domain.interfaces.appearance_form_repository import (
 from twd_hub.domain.interfaces.appearance_repository import AppearanceRepository
 from twd_hub.domain.interfaces.entity_repository import EntityRepository
 from twd_hub.domain.interfaces.episode_repository import EpisodeRepository
+from twd_hub.domain.interfaces.html_loader_service import HtmlLoader
+from twd_hub.domain.interfaces.html_parser_service import HtmlParser
 from twd_hub.domain.models.appearance import AppearanceBase
 from twd_hub.domain.models.appearance_form import AppearanceFormBase
 from twd_hub.domain.models.entity import EntityBase
 from twd_hub.domain.models.episode import EpisodeBase
 from twd_hub.domain.models.episode_page import EpisodePage
-from twd_hub.domain.services.database_initializer import (
-    DatabaseInitializer as BaseDatabaseInitializer,
-)
-from twd_hub.domain.services.episode_page_loader import EpisodeLoader
 
 
-class DatabaseInitializer(BaseDatabaseInitializer):
-    loader: EpisodeLoader
+class DatabaseInitializer:
+    episode_page_scraper: EpisodePageScraper
     episode_repository: EpisodeRepository
     entity_repository: EntityRepository
     appearance_repository: AppearanceRepository
@@ -27,21 +29,23 @@ class DatabaseInitializer(BaseDatabaseInitializer):
     def __init__(
         self,
         *,
-        loader: EpisodeLoader,
+        episode_page_scraper: EpisodePageScraper,
         episode_repository: EpisodeRepository,
         entity_repository: EntityRepository,
         appearance_repository: AppearanceRepository,
         appearance_form_repository: AppearanceFormRepository,
     ) -> None:
-        self.loader = loader
+        self.episode_page_scraper = episode_page_scraper
         self.episode_repository = episode_repository
         self.entity_repository = entity_repository
         self.appearance_repository = appearance_repository
         self.appearance_form_repository = appearance_form_repository
 
-    @typing.override
     async def run(
-        self, initial_page_href: str, *, until: typing.Optional[tuple[int, int]]
+        self,
+        *,
+        initial_page_href: str,
+        load_until: typing.Optional[tuple[int, int]],
     ) -> None:
         episode_upsert = await Upsert.of(
             self.episode_repository,
@@ -69,12 +73,12 @@ class DatabaseInitializer(BaseDatabaseInitializer):
 
         analyzed_page: EpisodePage | None = None
         while analyzed_page is None or (
-            until is not None
+            load_until is not None
             and (
                 analyzed_page.episode.season_number,
                 analyzed_page.episode.episode_number,
             )
-            < until
+            < load_until
         ):
             href: str
             if analyzed_page is None:
@@ -82,7 +86,10 @@ class DatabaseInitializer(BaseDatabaseInitializer):
             else:
                 href = analyzed_page.next_page_href
 
-            current_page = await self.loader.load(href)
+            current_page = await self.episode_page_scraper.scrape(
+                f"https://walkingdead.fandom.com{href}",
+                wait_until_selector="#Trivia",
+            )
             episode_model_id, _ = await episode_upsert.get_or_insert(
                 href,
                 on_insert=lambda: EpisodeBase(

@@ -8,7 +8,7 @@ import queue
 import bs4
 import playwright.async_api
 
-from . import PageLoader as BasePageLoader
+from twd_hub.domain.interfaces.html_loader_service import HtmlLoader
 
 
 def run_worker_sync(
@@ -42,10 +42,13 @@ async def run_worker_async(
     async with playwright.async_api.async_playwright() as p:
         async with await p.chromium.launch() as browser:
             while True:
-                href = await asyncio.to_thread(request_queue.get)
-                if href is None:
+                request_data = await asyncio.to_thread(request_queue.get)
+                if request_data is None:
                     break
 
+                url, wait_until_selector = request_data
+
+                page: playwright.async_api.Page
                 async with await browser.new_page(
                     # Makes headless browser look like a real browser
                     # Without this, `page.wait_for_selector` timeouts
@@ -53,20 +56,21 @@ async def run_worker_async(
                     viewport={"width": 1280, "height": 800},
                     locale="en-US",
                 ) as page:
-                    await page.goto(f"https://walkingdead.fandom.com{href}")
-                    await page.wait_for_selector("#Trivia")
+                    await page.goto(url)
+                    if wait_until_selector:
+                        await page.wait_for_selector(wait_until_selector)
                     html = await page.content()
 
-                await asyncio.to_thread(response_queue.put, (href, html))
+                await asyncio.to_thread(response_queue.put, (url, html))
 
 
-class PageLoader(BasePageLoader):
-    request_queue: queue.Queue[str | None]
+class PlaywrightHtmlLoader(HtmlLoader):
+    request_queue: queue.Queue[tuple[str, str | None] | None]
     response_queue: queue.Queue[tuple[str, str] | Exception]
     worker: threading.Thread
 
     @typing.override
-    async def __aenter__(self) -> "PageLoader":
+    async def __aenter__(self) -> "HtmlLoader":
         self.request_queue = queue.Queue()
         self.response_queue = queue.Queue()
 
@@ -88,8 +92,10 @@ class PageLoader(BasePageLoader):
         return await super().__aenter__()
 
     @typing.override
-    async def load(self, href: str) -> bs4.BeautifulSoup:
-        self.request_queue.put(href)
+    async def load(
+        self, url: str, *, wait_until_selector: str | None = None
+    ) -> str:
+        self.request_queue.put((url, wait_until_selector))
 
         def wait_result() -> str:
             while True:
@@ -97,12 +103,11 @@ class PageLoader(BasePageLoader):
                 if isinstance(response_data, Exception):
                     raise response_data
 
-                current_href, content = response_data
-                if current_href == href:
+                current_url, content = response_data
+                if current_url == url:
                     return content
 
-        content = await asyncio.to_thread(wait_result)
-        return bs4.BeautifulSoup(content, features="html.parser")
+        return await asyncio.to_thread(wait_result)
 
     @typing.override
     async def __aexit__(
