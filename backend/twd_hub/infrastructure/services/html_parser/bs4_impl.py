@@ -132,14 +132,14 @@ class Bs4HtmlParser(HtmlParser):
                 appearance_types_ids.append(appearance_type_id)
 
         character_a_href = a_elem.get("href")
-        assert isinstance(
-            character_a_href, str
-        ), f"invalid character_a_href: {character_a_href}"
+        assert isinstance(character_a_href, str), (
+            f"invalid character_a_href: {character_a_href}"
+        )
 
         character_a_title = a_elem.get("title")
-        assert isinstance(
-            character_a_title, str
-        ), f"invalid character_a_title: {character_a_title}"
+        assert isinstance(character_a_title, str), (
+            f"invalid character_a_title: {character_a_title}"
+        )
 
         character_name = a_elem.get_text().strip()
         return EntityAppearance(
