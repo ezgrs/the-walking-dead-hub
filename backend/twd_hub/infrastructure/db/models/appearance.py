@@ -52,5 +52,7 @@ class AppearanceModel(sqlmodel.SQLModel, table=True):
     forms: list["AppearanceFormModel"] = sqlmodel.Relationship(
         back_populates="appearance", cascade_delete=True, passive_deletes=True
     )
-    episode: "EpisodeModel" = sqlmodel.Relationship(back_populates="appearances")
+    episode: "EpisodeModel" = sqlmodel.Relationship(
+        back_populates="appearances"
+    )
     entity: "EntityModel" = sqlmodel.Relationship(back_populates="appearances")

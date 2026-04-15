@@ -32,4 +32,6 @@ class AppearanceFormModel(sqlmodel.SQLModel, table=True):
         )
     )
 
-    appearance: "AppearanceModel" = sqlmodel.Relationship(back_populates="forms")
+    appearance: "AppearanceModel" = sqlmodel.Relationship(
+        back_populates="forms"
+    )
