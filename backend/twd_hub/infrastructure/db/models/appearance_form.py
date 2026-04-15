@@ -1,4 +1,8 @@
 import sqlmodel
+import typing
+
+if typing.TYPE_CHECKING:
+    from twd_hub.infrastructure.db.models.appearance import AppearanceModel
 
 
 class AppearanceFormModel(sqlmodel.SQLModel, table=True):
@@ -15,8 +19,9 @@ class AppearanceFormModel(sqlmodel.SQLModel, table=True):
     appearance_id: int = sqlmodel.Field(
         sa_column=sqlmodel.Column(
             "appearanceid",
-            sqlmodel.ForeignKey("appearances.id"),
+            sqlmodel.ForeignKey("appearances.id", ondelete="CASCADE"),
             nullable=False,
+            index=True,
         )
     )
     type_id: int = sqlmodel.Field(
@@ -26,3 +31,5 @@ class AppearanceFormModel(sqlmodel.SQLModel, table=True):
             nullable=False,
         )
     )
+
+    appearance: "AppearanceModel" = sqlmodel.Relationship(back_populates="forms")

@@ -1,4 +1,8 @@
+import typing
 import sqlmodel
+
+if typing.TYPE_CHECKING:
+    from twd_hub.infrastructure.db.models.appearance import AppearanceModel
 
 
 class EntityModel(sqlmodel.SQLModel, table=True):
@@ -24,5 +28,10 @@ class EntityModel(sqlmodel.SQLModel, table=True):
             "wikihref",
             sqlmodel.VARCHAR(127),
             nullable=False,
+            unique=True,
         )
+    )
+
+    appearances: list["AppearanceModel"] = sqlmodel.Relationship(
+        back_populates="entity"
     )

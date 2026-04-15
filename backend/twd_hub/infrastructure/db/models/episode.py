@@ -1,4 +1,8 @@
 import sqlmodel
+import typing
+
+if typing.TYPE_CHECKING:
+    from twd_hub.infrastructure.db.models.appearance import AppearanceModel
 
 
 class EpisodeModel(sqlmodel.SQLModel, table=True):
@@ -24,6 +28,7 @@ class EpisodeModel(sqlmodel.SQLModel, table=True):
             "wikihref",
             sqlmodel.VARCHAR(127),
             nullable=False,
+            unique=True,
         )
     )
     season_number: int = sqlmodel.Field(
@@ -39,4 +44,8 @@ class EpisodeModel(sqlmodel.SQLModel, table=True):
             sqlmodel.SMALLINT,
             nullable=False,
         )
+    )
+
+    appearances: list["AppearanceModel"] = sqlmodel.Relationship(
+        back_populates="episode"
     )
