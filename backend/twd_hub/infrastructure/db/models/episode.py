@@ -47,5 +47,5 @@ class EpisodeModel(sqlmodel.SQLModel, table=True):
     )
 
     appearances: list["AppearanceModel"] = sqlmodel.Relationship(
-        back_populates="episode"
+        back_populates="episode", cascade_delete=True, passive_deletes=True
     )

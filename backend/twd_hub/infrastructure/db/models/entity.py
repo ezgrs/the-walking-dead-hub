@@ -33,5 +33,5 @@ class EntityModel(sqlmodel.SQLModel, table=True):
     )
 
     appearances: list["AppearanceModel"] = sqlmodel.Relationship(
-        back_populates="entity"
+        back_populates="entity", cascade_delete=True, passive_deletes=True
     )

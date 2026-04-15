@@ -30,14 +30,14 @@ class AppearanceModel(sqlmodel.SQLModel, table=True):
     episode_id: int = sqlmodel.Field(
         sa_column=sqlmodel.Column(
             "episodeid",
-            sqlmodel.ForeignKey("episodes.id"),
+            sqlmodel.ForeignKey("episodes.id", ondelete="CASCADE"),
             nullable=False,
         )
     )
     entity_id: int = sqlmodel.Field(
         sa_column=sqlmodel.Column(
             "entityid",
-            sqlmodel.ForeignKey("entities.id"),
+            sqlmodel.ForeignKey("entities.id", ondelete="CASCADE"),
             nullable=False,
         )
     )
