@@ -46,19 +46,22 @@ class DatabaseInitializer:
         entities_mapping: dict[str, dict[str, list[EntityAppearance]]] = {}
 
         analyzed_page: EpisodePage | None = None
-        while analyzed_page is None or (
-            load_until is not None
-            and (
-                analyzed_page.episode.season_number,
-                analyzed_page.episode.episode_number,
-            )
-            < load_until
-        ):
+        while True:
             href: str
             if analyzed_page is None:
                 href = initial_page_href
             else:
-                href = analyzed_page.next_page_href
+                if load_until is not None and (
+                    (analyzed_page.episode.season_number,
+                    analyzed_page.episode.episode_number)
+                    >= load_until
+                ):
+                    break
+
+                next_page_href = analyzed_page.next_page_href 
+                if next_page_href is None:
+                    break
+                href = next_page_href
 
             current_page = await self.episode_page_scraper.scrape(
                 f"https://walkingdead.fandom.com{href}",
@@ -94,7 +97,6 @@ class DatabaseInitializer:
                 )
             (episode,) = episodes_
             episodes.append(episode)
-
 
         # Update all entities
         entities: list[EntityBase] = []
