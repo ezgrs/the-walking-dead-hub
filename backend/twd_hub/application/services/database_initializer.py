@@ -52,13 +52,15 @@ class DatabaseInitializer:
                 href = initial_page_href
             else:
                 if load_until is not None and (
-                    (analyzed_page.episode.season_number,
-                    analyzed_page.episode.episode_number)
+                    (
+                        analyzed_page.episode.season_number,
+                        analyzed_page.episode.episode_number,
+                    )
                     >= load_until
                 ):
                     break
 
-                next_page_href = analyzed_page.next_page_href 
+                next_page_href = analyzed_page.next_page_href
                 if next_page_href is None:
                     break
                 href = next_page_href

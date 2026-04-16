@@ -53,37 +53,41 @@ class AppearanceFormRepository(BaseAppearanceFormRepository):
             ],
         )
 
-        await self.session.execute(sqlmodel.text(f"TRUNCATE {AppearanceFormModel.__tablename__} RESTART IDENTITY"))
+        await self.session.execute(
+            sqlmodel.text(
+                f"TRUNCATE {AppearanceFormModel.__tablename__} RESTART IDENTITY"
+            )
+        )
 
         await self.session.execute(
-            sqlmodel.insert(AppearanceFormModel)
-            .from_select(
+            sqlmodel.insert(AppearanceFormModel).from_select(
                 [
                     sqlmodel.col(AppearanceFormModel.appearance_id),
                     sqlmodel.col(AppearanceFormModel.type_id),
                 ],
-                sqlmodel
-                .select(
+                sqlmodel.select(
                     sqlmodel.col(AppearanceModel.id),
                     tmp_table.c["appearanceformtypeid"],
                 )
                 .join(
                     EpisodeModel,
-                    sqlmodel.col(EpisodeModel.wiki_href) ==  tmp_table.c["episodewikihref"],
+                    sqlmodel.col(EpisodeModel.wiki_href)
+                    == tmp_table.c["episodewikihref"],
                 )
                 .join(
                     EntityModel,
-                    sqlmodel.col(EntityModel.wiki_href) ==  tmp_table.c["entitywikihref"],
+                    sqlmodel.col(EntityModel.wiki_href)
+                    == tmp_table.c["entitywikihref"],
                 )
                 .join(
                     AppearanceModel,
                     sqlmodel.and_(
-                        sqlmodel.col(AppearanceModel.episode_id) == EpisodeModel.id,
-                        sqlmodel.col(AppearanceModel.entity_id) == EntityModel.id,
+                        sqlmodel.col(AppearanceModel.episode_id)
+                        == EpisodeModel.id,
+                        sqlmodel.col(AppearanceModel.entity_id)
+                        == EntityModel.id,
                     ),
-
-                )
+                ),
             )
         )
         await self.session.commit()
-        
