@@ -1,11 +1,18 @@
 import sqlmodel.ext.asyncio.session
 import typing
 
-from twd_hub.domain.models.episode import EpisodeBase, Episode
+from twd_hub.domain.models.episode import EpisodeBase
 from twd_hub.domain.interfaces.episode_repository import (
     EpisodeRepository as BaseEpisodeRepository,
 )
 from twd_hub.infrastructure.db.models.episode import EpisodeModel
+from twd_hub.infrastructure.db.utils.queries import (
+    SQLModelColumnUpdateSpec,
+    update_all,
+)
+from twd_hub.infrastructure.db.utils.tables import (
+    SQLModelColumn,
+)
 
 
 class EpisodeRepository(BaseEpisodeRepository):
@@ -17,33 +24,31 @@ class EpisodeRepository(BaseEpisodeRepository):
         self.session = session
 
     @typing.override
-    async def read_all(self) -> list[Episode]:
-        return [
-            Episode(
-                id=typing.cast(int, model.id),
-                season_number=model.season_number,
-                episode_number=model.episode_number,
-                name=model.name,
-                wiki_href=model.wiki_href,
-            )
-            for model in await self.session.exec(sqlmodel.select(EpisodeModel))
-        ]
-
-    @typing.override
-    async def create(self, data: EpisodeBase) -> Episode:
-        model = EpisodeModel(
-            id=None,
-            season_number=data.season_number,
-            episode_number=data.episode_number,
-            name=data.name,
-            wiki_href=data.wiki_href,
-        )
-        self.session.add(model)
-        await self.session.flush([model])
-        return Episode(
-            id=typing.cast(int, model.id),
-            season_number=model.season_number,
-            episode_number=model.episode_number,
-            name=model.name,
-            wiki_href=model.wiki_href,
+    async def update_all(self, datum: list[EpisodeBase]) -> None:
+        await update_all(
+            self.session,
+            EpisodeModel,
+            datum,
+            index_cols_specs=[
+                SQLModelColumnUpdateSpec(
+                    col=SQLModelColumn(EpisodeModel, lambda M: M.wiki_href),
+                    accessor=lambda data: data.wiki_href,
+                ),
+            ],
+            update_cols_specs=[
+                SQLModelColumnUpdateSpec(
+                    col=SQLModelColumn(EpisodeModel, lambda M: M.name),
+                    accessor=lambda data: data.name,
+                ),
+                SQLModelColumnUpdateSpec(
+                    col=SQLModelColumn(EpisodeModel, lambda M: M.season_number),
+                    accessor=lambda data: data.season_number,
+                ),
+                SQLModelColumnUpdateSpec(
+                    col=SQLModelColumn(
+                        EpisodeModel, lambda M: M.episode_number
+                    ),
+                    accessor=lambda data: data.episode_number,
+                ),
+            ],
         )

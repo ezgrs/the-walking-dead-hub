@@ -2,16 +2,14 @@ import typing
 from twd_hub.application.services.episode_page_scraper import (
     EpisodePageScraper,
 )
-from twd_hub.domain.interfaces import Upsert
 from twd_hub.domain.interfaces.appearance_form_repository import (
     AppearanceFormRepository,
 )
 from twd_hub.domain.interfaces.appearance_repository import AppearanceRepository
 from twd_hub.domain.interfaces.entity_repository import EntityRepository
 from twd_hub.domain.interfaces.episode_repository import EpisodeRepository
-from twd_hub.domain.models.appearance import AppearanceBase
-from twd_hub.domain.models.appearance_form import AppearanceFormBase
 from twd_hub.domain.models.entity import EntityBase
+from twd_hub.domain.models.entity_appearance import EntityAppearance
 from twd_hub.domain.models.episode import EpisodeBase
 from twd_hub.domain.models.episode_page import EpisodePage
 
@@ -44,29 +42,8 @@ class DatabaseInitializer:
         initial_page_href: str,
         load_until: typing.Optional[tuple[int, int]],
     ) -> None:
-        episode_upsert = await Upsert.of(
-            self.episode_repository,
-            on_id=lambda episode: episode.id,
-            on_key=lambda episode: episode.wiki_href,
-        )
-        entity_upsert = await Upsert.of(
-            self.entity_repository,
-            on_id=lambda entity: entity.id,
-            on_key=lambda entity: entity.wiki_href,
-        )
-        appearance_upsert = await Upsert.of(
-            self.appearance_repository,
-            on_id=lambda appearance: appearance.id,
-            on_key=lambda appearance: (
-                appearance.entity_id,
-                appearance.episode_id,
-            ),
-        )
-        appearance_form_upsert = await Upsert.of(
-            self.appearance_form_repository,
-            on_id=lambda appearance_form: appearance_form.id,
-            on_key=lambda appearance_form: appearance_form.appearance_id,
-        )
+        episodes_mapping: dict[str, list[EpisodeBase]] = {}
+        entities_mapping: dict[str, dict[str, list[EntityAppearance]]] = {}
 
         analyzed_page: EpisodePage | None = None
         while analyzed_page is None or (
@@ -87,44 +64,60 @@ class DatabaseInitializer:
                 f"https://walkingdead.fandom.com{href}",
                 wait_until_selector="#Trivia",
             )
-            episode_model_id, _ = await episode_upsert.get_or_insert(
-                href,
-                on_insert=lambda: EpisodeBase(
-                    name=current_page.episode.name,
-                    wiki_href=current_page.episode.wiki_href,
-                    season_number=current_page.episode.season_number,
-                    episode_number=current_page.episode.episode_number,
-                ),
-            )
+            episodes_mapping.setdefault(
+                current_page.episode.wiki_href, []
+            ).append(current_page.episode)
 
             for entity_appearance in current_page.entity_appearances:
-                entity_page_href = entity_appearance.entity_page_href
-                entity_model_id, _ = await entity_upsert.get_or_insert(
-                    entity_page_href,
-                    on_insert=lambda: EntityBase(
-                        name=entity_appearance.entity_name,
-                        wiki_href=entity_page_href,
-                    ),
-                )
-
-                appearance_model_id, _ = await appearance_upsert.get_or_insert(
-                    (entity_model_id, episode_model_id),
-                    on_insert=lambda: AppearanceBase(
-                        episode_id=episode_model_id,
-                        entity_id=entity_model_id,
-                        type_id=entity_appearance.appearance_type_id,
-                    ),
-                )
-
-                for (
-                    appearance_form_type_id
-                ) in entity_appearance.appearance_form_types_ids:
-                    await appearance_form_upsert.get_or_insert(
-                        appearance_model_id,
-                        on_insert=lambda: AppearanceFormBase(
-                            appearance_id=appearance_model_id,
-                            type_id=appearance_form_type_id,
-                        ),
+                entities_mapping.setdefault(
+                    entity_appearance.entity_page_href,
+                    {},
+                ).setdefault(entity_appearance.entity_name, []).append(
+                    EntityAppearance(
+                        episode_page_href=href,
+                        entity_page_href=entity_appearance.entity_page_href,
+                        entity_page_title=entity_appearance.entity_page_title,
+                        entity_name=entity_appearance.entity_name,
+                        appearance_type_id=entity_appearance.appearance_type_id,
+                        appearance_form_types_ids=entity_appearance.appearance_form_types_ids,
                     )
+                )
 
             analyzed_page = current_page
+
+        # Update all episodes
+        episodes: list[EpisodeBase] = []
+        for episode_wiki_href, episodes_ in episodes_mapping.items():
+            if len(episodes_) != 1:
+                raise RuntimeError(
+                    f"the following episodes have the same HREF ({episode_wiki_href}): {episodes_}"
+                )
+            (episode,) = episodes_
+            episodes.append(episode)
+
+
+        # Update all entities
+        entities: list[EntityBase] = []
+        appearances: list[EntityAppearance] = []
+        for entity_wiki_href, entities_data_mapping in entities_mapping.items():
+            entities_data_items = entities_data_mapping.items()
+            if len(entities_data_items) != 1:
+                raise RuntimeError(
+                    f"the following entities have the same HREF ({entity_wiki_href}): "
+                    + ", ".join(
+                        entity_name for entity_name, _ in entities_data_items
+                    )
+                )
+            ((entity_name, entity_appearances),) = entities_data_items
+            entities.append(
+                EntityBase(
+                    name=entity_name,
+                    wiki_href=entity_wiki_href,
+                )
+            )
+            appearances.extend(entity_appearances)
+
+        await self.episode_repository.update_all(episodes)
+        await self.entity_repository.update_all(entities)
+        await self.appearance_repository.update_all(appearances)
+        await self.appearance_form_repository.update_all(appearances)

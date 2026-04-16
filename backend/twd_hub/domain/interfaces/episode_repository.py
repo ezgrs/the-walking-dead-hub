@@ -1,11 +1,8 @@
 import abc
 
-from twd_hub.domain.models.episode import EpisodeBase, Episode
+from twd_hub.domain.models.episode import EpisodeBase
 
 
 class EpisodeRepository(abc.ABC):
     @abc.abstractmethod
-    async def read_all(self) -> list[Episode]: ...
-
-    @abc.abstractmethod
-    async def create(self, data: EpisodeBase) -> Episode: ...
+    async def update_all(self, datum: list[EpisodeBase]) -> None: ...

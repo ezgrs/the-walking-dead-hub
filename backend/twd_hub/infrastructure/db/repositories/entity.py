@@ -1,11 +1,16 @@
 import sqlmodel.ext.asyncio.session
 import typing
 
-from twd_hub.domain.models.entity import EntityBase, Entity
+from twd_hub.domain.models.entity import EntityBase
 from twd_hub.domain.interfaces.entity_repository import (
     EntityRepository as BaseEntityRepository,
 )
 from twd_hub.infrastructure.db.models.entity import EntityModel
+from twd_hub.infrastructure.db.utils.queries import (
+    SQLModelColumnUpdateSpec,
+    update_all,
+)
+from twd_hub.infrastructure.db.utils.tables import SQLModelColumn
 
 
 class EntityRepository(BaseEntityRepository):
@@ -17,27 +22,21 @@ class EntityRepository(BaseEntityRepository):
         self.session = session
 
     @typing.override
-    async def read_all(self) -> list[Entity]:
-        return [
-            Entity(
-                id=typing.cast(int, model.id),
-                name=model.name,
-                wiki_href=model.wiki_href,
-            )
-            for model in await self.session.exec(sqlmodel.select(EntityModel))
-        ]
-
-    @typing.override
-    async def create(self, data: EntityBase) -> Entity:
-        model = EntityModel(
-            id=None,
-            name=data.name,
-            wiki_href=data.wiki_href,
-        )
-        self.session.add(model)
-        await self.session.flush([model])
-        return Entity(
-            id=typing.cast(int, model.id),
-            name=model.name,
-            wiki_href=model.wiki_href,
+    async def update_all(self, datum: list[EntityBase]) -> None:
+        await update_all(
+            self.session,
+            EntityModel,
+            datum,
+            index_cols_specs=[
+                SQLModelColumnUpdateSpec(
+                    col=SQLModelColumn(EntityModel, lambda M: M.wiki_href),
+                    accessor=lambda data: data.wiki_href,
+                ),
+            ],
+            update_cols_specs=[
+                SQLModelColumnUpdateSpec(
+                    col=SQLModelColumn(EntityModel, lambda M: M.name),
+                    accessor=lambda data: data.name,
+                ),
+            ],
         )

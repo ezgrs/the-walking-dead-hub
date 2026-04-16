@@ -4,7 +4,7 @@ import typing
 import bs4
 from twd_hub.domain.interfaces.alias_repository import AliasRepository
 from twd_hub.domain.interfaces.html_parser_service import HtmlParser
-from twd_hub.domain.models.entity_appearance import EntityAppearance
+from twd_hub.domain.models.entity_appearance import EntityAppearanceBase
 from twd_hub.domain.models.episode import EpisodeBase
 from twd_hub.domain.models.episode_page import EpisodePage
 
@@ -67,7 +67,7 @@ class Bs4HtmlParser(HtmlParser):
         episode_number = int(episode_number_text)
 
         # Parse episode entity appearances
-        entity_appearances: list[EntityAppearance] = []
+        entity_appearances: list[EntityAppearanceBase] = []
         trivia_elem = element.select_one("#Trivia")
         assert trivia_elem
         trivia_ul_elem = trivia_elem.find_next("ul")
@@ -101,7 +101,7 @@ class Bs4HtmlParser(HtmlParser):
 
     async def _parse_entity_appearance(
         self, element: bs4.Tag
-    ) -> EntityAppearance | None:
+    ) -> EntityAppearanceBase | None:
         text = element.get_text()
         appearance_order_id = (
             await self.alias_repository.find_appearance_type_id(text)
@@ -142,7 +142,7 @@ class Bs4HtmlParser(HtmlParser):
         )
 
         character_name = a_elem.get_text().strip()
-        return EntityAppearance(
+        return EntityAppearanceBase(
             entity_page_href=character_a_href,
             entity_page_title=character_a_title,
             entity_name=character_name,

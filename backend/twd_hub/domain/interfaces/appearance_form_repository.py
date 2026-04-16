@@ -1,14 +1,8 @@
 import abc
 
-from twd_hub.domain.models.appearance_form import (
-    AppearanceFormBase,
-    AppearanceForm,
-)
+from twd_hub.domain.models.entity_appearance import EntityAppearance
 
 
 class AppearanceFormRepository(abc.ABC):
     @abc.abstractmethod
-    async def read_all(self) -> list[AppearanceForm]: ...
-
-    @abc.abstractmethod
-    async def create(self, data: AppearanceFormBase) -> AppearanceForm: ...
+    async def update_all(self, datum: list[EntityAppearance]) -> None: ...
