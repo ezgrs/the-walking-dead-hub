@@ -7,6 +7,12 @@ if typing.TYPE_CHECKING:
 
 class AppearanceFormModel(sqlmodel.SQLModel, table=True):
     __tablename__ = "appearanceforms"  # pyright: ignore[reportAssignmentType]
+    __table_args__ = (
+        sqlmodel.UniqueConstraint(
+            "appearanceid",
+            "appearanceformtypeid",
+        ),
+    )
 
     id: int | None = sqlmodel.Field(
         sa_column=sqlmodel.Column(
