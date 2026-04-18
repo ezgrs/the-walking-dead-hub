@@ -3,8 +3,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:responsive_framework/responsive_framework.dart' as rf;
 
+import 'features/home/screen.dart';
 import 'l10n/app_localizations.dart';
-import 'screens/homepage.dart';
 
 void main() {
   runApp(const MainApp());

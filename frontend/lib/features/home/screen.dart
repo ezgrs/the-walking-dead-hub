@@ -3,9 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:responsive_framework/responsive_framework.dart' as rf;
 import 'package:url_launcher/url_launcher.dart';
 
-import '../l10n/app_localizations.dart';
-import '../main.dart';
-import '../widgets/header.dart';
+import '../../l10n/app_localizations.dart';
+import '../../main.dart';
+import '../../widgets/header.dart';
 
 class MaybeWidget extends StatelessWidget {
   final Widget child;
