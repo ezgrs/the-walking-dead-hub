@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:responsive_framework/responsive_framework.dart' as rf;
 
 import '../l10n/app_localizations.dart';
 import '../main.dart';
+import '../widgets/header.dart';
 
 class MaybeWidget extends StatelessWidget {
   final Widget child;
@@ -31,13 +31,7 @@ class HomeScreen extends StatelessWidget {
       context,
     ).smallerThan(kDeviceDesktop);
     final List<Widget> children = [
-      Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: SvgPicture.network(
-          "https://upload.wikimedia.org/wikipedia/commons/e/ef/The_Walking_Dead_2010_logo.svg",
-          height: 100,
-        ),
-      ),
+      HeaderWidget(),
       MaybeWidget(
         enabled: !scrollable,
         builder: (child) => Expanded(child: child),
