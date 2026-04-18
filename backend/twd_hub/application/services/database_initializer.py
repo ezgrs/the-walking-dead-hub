@@ -95,7 +95,10 @@ class DatabaseInitializer:
         for episode_wiki_href, episodes_ in episodes_mapping.items():
             if len(episodes_) != 1:
                 raise RuntimeError(
-                    f"the following episodes have the same HREF ({episode_wiki_href}): {episodes_}"
+                    f"the following episodes have the same HREF ({episode_wiki_href}): "
+                    + ", ".join(
+                        episode.name for episode in episodes_
+                    )
                 )
             (episode,) = episodes_
             episodes.append(episode)
