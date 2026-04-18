@@ -3,38 +3,69 @@ import pytest_mock
 from twd_hub.application.services.database_initializer import (
     DatabaseInitializer,
 )
-from twd_hub.application.services.episode_page_scraper import EpisodePageScraper
-from twd_hub.domain.interfaces.appearance_form_repository import (
-    AppearanceFormRepository,
-)
-from twd_hub.domain.interfaces.appearance_repository import AppearanceRepository
-from twd_hub.domain.interfaces.episode_repository import EpisodeRepository
 from twd_hub.domain.models.episode import EpisodeBase
 from twd_hub.domain.models.episode_page import EpisodePage
 
+import unittest.mock
 
-def episode_page_scraper__scrape__mock(
+
+@pytest.fixture(name="episode_page_scraper")
+def create_episode_page_scraper_mock(
     mocker: pytest_mock.MockerFixture,
-    params: dict[str, EpisodePage],
-):
+    request: pytest.FixtureRequest,
+) -> unittest.mock.Mock:
+    return_values: dict[str, EpisodePage] = request.param
+
     async def side_effect(
         url: str, wait_until_selector: str | None
     ) -> EpisodePage:
-        episode_page = params.get(url)
+        episode_page = return_values.get(url)
         if episode_page is None:
             assert False, f"not handled {url}"
         return episode_page
 
-    return mocker.AsyncMock(side_effect=side_effect)
+    mock = mocker.Mock()
+    mock.scrape = mocker.AsyncMock(side_effect=side_effect)
+    return mock
 
 
-@pytest.mark.asyncio
-async def test__import_single_episode_by_load_until_parameter(
+class MockedDatabaseInitializer(DatabaseInitializer):
+    episode_page_scraper: unittest.mock.Mock  # pyright: ignore[reportIncompatibleVariableOverride]
+    episode_repository: unittest.mock.Mock  # pyright: ignore[reportIncompatibleVariableOverride]
+    entity_repository: unittest.mock.Mock  # pyright: ignore[reportIncompatibleVariableOverride]
+    appearance_repository: unittest.mock.Mock  # pyright: ignore[reportIncompatibleVariableOverride]
+    appearance_form_repository: unittest.mock.Mock  # pyright: ignore[reportIncompatibleVariableOverride]
+
+
+@pytest.fixture(name="db_initializer")
+def create_database_initializer(
     mocker: pytest_mock.MockerFixture,
-) -> None:
-    episode_page_scraper = mocker.Mock()
-    episode_page_scraper.scrape = episode_page_scraper__scrape__mock(
-        mocker,
+    episode_page_scraper: unittest.mock.Mock,
+) -> MockedDatabaseInitializer:
+    episode_repository = mocker.Mock()
+    episode_repository.update_all = mocker.AsyncMock()
+
+    entity_repository = mocker.Mock()
+    entity_repository.update_all = mocker.AsyncMock()
+
+    appearance_repository = mocker.Mock()
+    appearance_repository.update_all = mocker.AsyncMock()
+
+    appearance_form_repository = mocker.Mock()
+    appearance_form_repository.update_all = mocker.AsyncMock()
+
+    return MockedDatabaseInitializer(
+        episode_page_scraper=episode_page_scraper,
+        episode_repository=episode_repository,
+        entity_repository=entity_repository,
+        appearance_repository=appearance_repository,
+        appearance_form_repository=appearance_form_repository,
+    )
+
+
+@pytest.mark.parametrize(
+    "episode_page_scraper",
+    [
         {
             "https://walkingdead.fandom.com/wiki/Days_Gone_Bye_(TV_Series)": EpisodePage(
                 episode=EpisodeBase(
@@ -46,33 +77,19 @@ async def test__import_single_episode_by_load_until_parameter(
                 entity_appearances=[],
                 next_page_href="/wiki/Guts",
             ),
-        },
-    )
-
-    episode_repository = mocker.Mock()
-    episode_repository.update_all = mocker.AsyncMock()
-
-    entity_repository = mocker.Mock()
-    entity_repository.update_all = mocker.AsyncMock()
-
-    appearance_repository = mocker.Mock()
-    appearance_repository.update_all = mocker.AsyncMock()
-
-    appearance_form_repository = mocker.Mock()
-    appearance_form_repository.update_all = mocker.AsyncMock()
-
-    initializer = DatabaseInitializer(
-        episode_page_scraper=episode_page_scraper,
-        episode_repository=episode_repository,
-        entity_repository=entity_repository,
-        appearance_repository=appearance_repository,
-        appearance_form_repository=appearance_form_repository,
-    )
-    await initializer.run(
+        }
+    ],
+    indirect=True,
+)
+@pytest.mark.asyncio
+async def test__import_single_episode_by_load_until_parameter(
+    db_initializer: MockedDatabaseInitializer,
+) -> None:
+    await db_initializer.run(
         initial_page_href="/wiki/Days_Gone_Bye_(TV_Series)", load_until=(1, 1)
     )
-    episode_page_scraper.scrape.assert_called_once()
-    episode_repository.update_all.assert_called_once_with(
+    db_initializer.episode_page_scraper.scrape.assert_called_once()
+    db_initializer.episode_repository.update_all.assert_called_once_with(
         [
             EpisodeBase(
                 name="Days Gone Bye",
@@ -82,18 +99,16 @@ async def test__import_single_episode_by_load_until_parameter(
             )
         ]
     )
-    entity_repository.update_all.assert_called_once_with([])
-    appearance_repository.update_all.assert_called_once_with([])
-    appearance_form_repository.update_all.assert_called_once_with([])
+    db_initializer.entity_repository.update_all.assert_called_once_with([])
+    db_initializer.appearance_repository.update_all.assert_called_once_with([])
+    db_initializer.appearance_form_repository.update_all.assert_called_once_with(
+        []
+    )
 
 
-@pytest.mark.asyncio
-async def test__import_single_episode_by_next_page_href_field(
-    mocker: pytest_mock.MockerFixture,
-) -> None:
-    episode_page_scraper = mocker.Mock()
-    episode_page_scraper.scrape = episode_page_scraper__scrape__mock(
-        mocker,
+@pytest.mark.parametrize(
+    "episode_page_scraper",
+    [
         {
             "https://walkingdead.fandom.com/wiki/TS-19": EpisodePage(
                 episode=EpisodeBase(
@@ -105,31 +120,17 @@ async def test__import_single_episode_by_next_page_href_field(
                 entity_appearances=[],
                 next_page_href=None,
             ),
-        },
-    )
-
-    episode_repository = mocker.Mock()
-    episode_repository.update_all = mocker.AsyncMock()
-
-    entity_repository = mocker.Mock()
-    entity_repository.update_all = mocker.AsyncMock()
-
-    appearance_repository = mocker.Mock()
-    appearance_repository.update_all = mocker.AsyncMock()
-
-    appearance_form_repository = mocker.Mock()
-    appearance_form_repository.update_all = mocker.AsyncMock()
-
-    initializer = DatabaseInitializer(
-        episode_page_scraper=episode_page_scraper,
-        episode_repository=episode_repository,
-        entity_repository=entity_repository,
-        appearance_repository=appearance_repository,
-        appearance_form_repository=appearance_form_repository,
-    )
-    await initializer.run(initial_page_href="/wiki/TS-19", load_until=None)
-    episode_page_scraper.scrape.assert_called_once()
-    episode_repository.update_all.assert_called_once_with(
+        }
+    ],
+    indirect=True,
+)
+@pytest.mark.asyncio
+async def test__import_single_episode_by_next_page_href_field(
+    db_initializer: MockedDatabaseInitializer,
+) -> None:
+    await db_initializer.run(initial_page_href="/wiki/TS-19", load_until=None)
+    db_initializer.episode_page_scraper.scrape.assert_called_once()
+    db_initializer.episode_repository.update_all.assert_called_once_with(
         [
             EpisodeBase(
                 name="TS-19",
@@ -139,18 +140,16 @@ async def test__import_single_episode_by_next_page_href_field(
             )
         ]
     )
-    entity_repository.update_all.assert_called_once_with([])
-    appearance_repository.update_all.assert_called_once_with([])
-    appearance_form_repository.update_all.assert_called_once_with([])
+    db_initializer.entity_repository.update_all.assert_called_once_with([])
+    db_initializer.appearance_repository.update_all.assert_called_once_with([])
+    db_initializer.appearance_form_repository.update_all.assert_called_once_with(
+        []
+    )
 
 
-@pytest.mark.asyncio
-async def test__import_multiple_episodes_by_load_until_parameter(
-    mocker: pytest_mock.MockerFixture,
-) -> None:
-    episode_page_scraper = mocker.Mock()
-    episode_page_scraper.scrape = episode_page_scraper__scrape__mock(
-        mocker,
+@pytest.mark.parametrize(
+    "episode_page_scraper",
+    [
         {
             "https://walkingdead.fandom.com/wiki/Days_Gone_Bye_(TV_Series)": EpisodePage(
                 episode=EpisodeBase(
@@ -182,33 +181,19 @@ async def test__import_multiple_episodes_by_load_until_parameter(
                 entity_appearances=[],
                 next_page_href="/wiki/Vatos",
             ),
-        },
-    )
-
-    episode_repository = mocker.Mock()
-    episode_repository.update_all = mocker.AsyncMock()
-
-    entity_repository = mocker.Mock()
-    entity_repository.update_all = mocker.AsyncMock()
-
-    appearance_repository = mocker.Mock()
-    appearance_repository.update_all = mocker.AsyncMock()
-
-    appearance_form_repository = mocker.Mock()
-    appearance_form_repository.update_all = mocker.AsyncMock()
-
-    initializer = DatabaseInitializer(
-        episode_page_scraper=episode_page_scraper,
-        episode_repository=episode_repository,
-        entity_repository=entity_repository,
-        appearance_repository=appearance_repository,
-        appearance_form_repository=appearance_form_repository,
-    )
-    await initializer.run(
+        }
+    ],
+    indirect=True,
+)
+@pytest.mark.asyncio
+async def test__import_multiple_episodes_by_load_until_parameter(
+    db_initializer: MockedDatabaseInitializer,
+) -> None:
+    await db_initializer.run(
         initial_page_href="/wiki/Days_Gone_Bye_(TV_Series)", load_until=(1, 3)
     )
-    assert episode_page_scraper.scrape.call_count == 3
-    episode_repository.update_all.assert_called_once_with(
+    assert db_initializer.episode_page_scraper.scrape.call_count == 3
+    db_initializer.episode_repository.update_all.assert_called_once_with(
         [
             EpisodeBase(
                 name="Days Gone Bye",
@@ -230,18 +215,16 @@ async def test__import_multiple_episodes_by_load_until_parameter(
             ),
         ]
     )
-    entity_repository.update_all.assert_called_once_with([])
-    appearance_repository.update_all.assert_called_once_with([])
-    appearance_form_repository.update_all.assert_called_once_with([])
+    db_initializer.entity_repository.update_all.assert_called_once_with([])
+    db_initializer.appearance_repository.update_all.assert_called_once_with([])
+    db_initializer.appearance_form_repository.update_all.assert_called_once_with(
+        []
+    )
 
 
-@pytest.mark.asyncio
-async def test__import_multiple_episodes_by_next_page_href_field(
-    mocker: pytest_mock.MockerFixture,
-) -> None:
-    episode_page_scraper = mocker.Mock()
-    episode_page_scraper.scrape = episode_page_scraper__scrape__mock(
-        mocker,
+@pytest.mark.parametrize(
+    "episode_page_scraper",
+    [
         {
             "https://walkingdead.fandom.com/wiki/Vatos": EpisodePage(
                 episode=EpisodeBase(
@@ -273,31 +256,17 @@ async def test__import_multiple_episodes_by_next_page_href_field(
                 entity_appearances=[],
                 next_page_href=None,
             ),
-        },
-    )
-
-    episode_repository = mocker.Mock()
-    episode_repository.update_all = mocker.AsyncMock()
-
-    entity_repository = mocker.Mock()
-    entity_repository.update_all = mocker.AsyncMock()
-
-    appearance_repository = mocker.Mock()
-    appearance_repository.update_all = mocker.AsyncMock()
-
-    appearance_form_repository = mocker.Mock()
-    appearance_form_repository.update_all = mocker.AsyncMock()
-
-    initializer = DatabaseInitializer(
-        episode_page_scraper=episode_page_scraper,
-        episode_repository=episode_repository,
-        entity_repository=entity_repository,
-        appearance_repository=appearance_repository,
-        appearance_form_repository=appearance_form_repository,
-    )
-    await initializer.run(initial_page_href="/wiki/Vatos", load_until=None)
-    assert episode_page_scraper.scrape.call_count == 3
-    episode_repository.update_all.assert_called_once_with(
+        }
+    ],
+    indirect=True,
+)
+@pytest.mark.asyncio
+async def test__import_multiple_episodes_by_next_page_href_field(
+    db_initializer: MockedDatabaseInitializer,
+) -> None:
+    await db_initializer.run(initial_page_href="/wiki/Vatos", load_until=None)
+    assert db_initializer.episode_page_scraper.scrape.call_count == 3
+    db_initializer.episode_repository.update_all.assert_called_once_with(
         [
             EpisodeBase(
                 name="Vatos",
@@ -319,6 +288,8 @@ async def test__import_multiple_episodes_by_next_page_href_field(
             ),
         ]
     )
-    entity_repository.update_all.assert_called_once_with([])
-    appearance_repository.update_all.assert_called_once_with([])
-    appearance_form_repository.update_all.assert_called_once_with([])
+    db_initializer.entity_repository.update_all.assert_called_once_with([])
+    db_initializer.appearance_repository.update_all.assert_called_once_with([])
+    db_initializer.appearance_form_repository.update_all.assert_called_once_with(
+        []
+    )
