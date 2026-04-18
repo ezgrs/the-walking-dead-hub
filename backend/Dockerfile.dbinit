@@ -1,0 +1,42 @@
+FROM python:3.13-slim
+
+# ---- Environment ----
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    POETRY_VERSION=2.1.4 \
+    POETRY_VIRTUALENVS_CREATE=false \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+WORKDIR /app
+
+# ---- System deps ----
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    build-essential \
+    libnss3 libatk1.0-0 libatk-bridge2.0-0 \
+    libcups2 libxkbcommon0 libxcomposite1 libxdamage1 \
+    libxrandr2 libgbm1 libasound2 \
+    && rm -rf /var/lib/apt/lists/*
+
+# ---- Install Poetry (simple + fast) ----
+RUN pip install --no-cache-dir poetry==${POETRY_VERSION}
+
+# ---- Install Python deps (cache-friendly) ----
+COPY pyproject.toml poetry.lock ./
+RUN poetry install --no-ansi --no-root --without dev
+
+# install playwright ONLY here
+RUN poetry run playwright install --with-deps chromium
+
+# ---- Create non-root user early ----
+RUN useradd -m appuser
+
+# ---- Copy app ----
+COPY --chown=appuser:appuser . .
+
+RUN chown -R appuser:appuser /ms-playwright /app
+
+USER appuser
+
+# ---- Run script ----
+CMD ["poetry", "run", "python", "-m", "twd_hub.scripts.initialize_db"]

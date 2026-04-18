@@ -1,0 +1,44 @@
+FROM python:3.13-slim
+
+# ---- Environment ----
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    POETRY_VERSION=2.1.4 \
+    POETRY_VIRTUALENVS_CREATE=false
+
+WORKDIR /app
+
+# ---- System deps ----
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# ---- Install Poetry (simple + fast) ----
+RUN pip install --no-cache-dir poetry==${POETRY_VERSION}
+
+# ---- Install Python deps (cache-friendly) ----
+COPY pyproject.toml poetry.lock ./
+RUN poetry install --no-ansi --no-root --without dev
+
+# ---- Remove build deps (shrink image) ----
+RUN apt-get purge -y build-essential curl \
+    && apt-get autoremove -y \
+    && apt-get clean
+
+# ---- Create non-root user early ----
+RUN useradd -m appuser
+
+# ---- Copy app ----
+COPY --chown=appuser:appuser . .
+
+USER appuser
+
+EXPOSE 5000
+
+# ---- Run app ----
+CMD ["uvicorn", "twd_hub.api.app:create_app", \
+     "--factory", \
+     "--host", "0.0.0.0", \
+     "--port", "5000", \
+     "--log-config", "log_config.yaml"]

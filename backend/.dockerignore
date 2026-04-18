@@ -1,0 +1,8 @@
+.git/*
+.*_cache/*
+.tmp/*
+htmlcov/*
+.coverage
+.env
+coverage.lcov
+README.md
