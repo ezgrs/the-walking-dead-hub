@@ -73,14 +73,14 @@ class HomeScreen extends StatelessWidget {
                             AppLocalizations.of(
                               context,
                             )!.homepageIntroductionTitleText,
-                            style: TextStyle(fontSize: 42),
+                            style: Theme.of(context).textTheme.displayMedium,
                             textAlign: TextAlign.justify,
                           ),
                           Text(
                             AppLocalizations.of(
                               context,
                             )!.homepageIntroductionBodyText,
-                            style: TextStyle(fontSize: 28),
+                            style: Theme.of(context).textTheme.headlineMedium,
                             textAlign: TextAlign.justify,
                           ),
                         ],
@@ -105,7 +105,7 @@ class HomeScreen extends StatelessWidget {
                       Center(
                         child: Text(
                           AppLocalizations.of(context)!.homepageMenu,
-                          style: TextStyle(fontSize: 64),
+                          style: Theme.of(context).textTheme.displayLarge,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.lg),
@@ -146,7 +146,7 @@ class HomeScreen extends StatelessWidget {
         child: Center(
           child: Text(
             "${AppLocalizations.of(context)!.homepageCreatedByLabel}: github.com/ezgrs",
-            style: TextStyle(fontSize: 36),
+            style: Theme.of(context).textTheme.displaySmall,
           ),
         ),
       ),
@@ -190,7 +190,9 @@ class _Button extends StatelessWidget {
           child: Center(
             child: Text(
               label,
-              style: TextStyle(fontSize: 36, color: Colors.white),
+              style: Theme.of(
+                context,
+              ).textTheme.displaySmall?.copyWith(color: Colors.white),
             ),
           ),
         ),
