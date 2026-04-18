@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:responsive_framework/responsive_framework.dart' as rf;
-import 'package:twd_hub/main.dart';
+
+import '../l10n/app_localizations.dart';
+import '../main.dart';
 
 class MaybeWidget extends StatelessWidget {
   final Widget child;
@@ -65,16 +67,9 @@ class HomeScreen extends StatelessWidget {
                     SizedBox(height: AppSpacing.xxxl),
                     Center(
                       child: Text(
-                        "Bem-vindo ao seu guia definitivo de personagens de The "
-                        "Walking Dead!\nAqui você encontra um panorama completo "
-                        "sobre cada sobrevivente que marcou a série — desde sua "
-                        "primeira aparição até seu destino final. Consulte "
-                        "rapidamente quando e como cada personagem morreu, "
-                        "incluindo as circunstâncias principais. Veja se houve "
-                        "aparições em flashbacks e em quais episódios ocorreram. "
-                        "Acompanhe também a primeira aparição, estatísticas ao "
-                        "longo das temporadas e redescubra personagens que podem "
-                        "ter passado despercebidos.",
+                        "${AppLocalizations.of(context)!.homepageIntroductionTitleText}"
+                        "\n"
+                        "${AppLocalizations.of(context)!.homepageIntroductionBodyText}",
                         style: TextStyle(fontSize: 28),
                         textAlign: TextAlign.justify,
                       ),
@@ -96,19 +91,34 @@ class HomeScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Center(
-                        child: Text("Menu", style: TextStyle(fontSize: 64)),
+                        child: Text(
+                          AppLocalizations.of(context)!.homepageMenu,
+                          style: TextStyle(fontSize: 64),
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.lg),
                       Column(
                         children: [
                           _Button(
-                            label: "Personagens",
+                            label: AppLocalizations.of(
+                              context,
+                            )!.homepageEntitiesButtonLabel,
                             location: "/characters",
                           ),
                           SizedBox(height: AppSpacing.md),
-                          _Button(label: "Temporadas", location: "/seasons"),
+                          _Button(
+                            label: AppLocalizations.of(
+                              context,
+                            )!.homepageSeasonsButtonLabel,
+                            location: "/seasons",
+                          ),
                           SizedBox(height: AppSpacing.md),
-                          _Button(label: "Episódios", location: "/episodes"),
+                          _Button(
+                            label: AppLocalizations.of(
+                              context,
+                            )!.homepageEpisodesButtonLabel,
+                            location: "/episodes",
+                          ),
                         ],
                       ),
                     ],
@@ -123,7 +133,7 @@ class HomeScreen extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Center(
           child: Text(
-            "Criado por: github.com/ezgrs",
+            "${AppLocalizations.of(context)!.homepageCreatedByLabel}: github.com/ezgrs",
             style: TextStyle(fontSize: 36),
           ),
         ),

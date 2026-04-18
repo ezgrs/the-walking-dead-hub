@@ -16,6 +16,7 @@ dependencies:
   provider: ^6.1.5+1
   responsive_framework: ^1.5.1
   flutter_svg: ^2.2.4
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
@@ -23,6 +24,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
 
 flutter:
+  generate: true
   uses-material-design: true
   fonts:
   - family: JollyLodger

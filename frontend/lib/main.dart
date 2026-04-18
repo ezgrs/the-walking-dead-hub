@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:responsive_framework/responsive_framework.dart' as rf;
 
+import 'l10n/app_localizations.dart';
 import 'screens/homepage.dart';
 
 void main() {
@@ -48,7 +49,10 @@ class MainApp extends StatelessWidget {
           thumbVisibility: WidgetStateProperty.all(true),
         ),
       ),
-      localizationsDelegates: const [...GlobalMaterialLocalizations.delegates],
+      localizationsDelegates: [
+        AppLocalizations.delegate,
+        ...GlobalMaterialLocalizations.delegates,
+      ],
       builder: (context, child) {
         child = rf.ResponsiveBreakpoints.builder(
           child: child!,
@@ -71,7 +75,7 @@ class MainApp extends StatelessWidget {
         );
         return child;
       },
-      supportedLocales: const [Locale('en', 'US')],
+      supportedLocales: const [Locale('en', 'US'), Locale('pt', 'BR')],
       locale: const Locale('en', 'US'),
       routerConfig: GoRouter(
         routes: [
