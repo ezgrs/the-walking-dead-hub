@@ -41,3 +41,5 @@ ruff_check = "ruff check twd_hub --fix"
 ruff_format = "ruff format twd_hub --line-length 80"
 format = ["ruff_check", "ruff_format"]
 serve = "uvicorn --factory twd_hub.api.app:create_app --port 5000 --reload --log-config log_config.yaml"
+tests_format = "ruff format tests --line-length 80"
+tests_run = "pytest --cov=twd_hub --cov-report=html tests/"
