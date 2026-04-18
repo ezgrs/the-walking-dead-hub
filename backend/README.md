@@ -9,17 +9,14 @@ Make sure you have the following:
 - The repository cloned to your machine
 - PostgreSQL running locally or accessible remotely
 - Redis running locally or accessible remotely
-- Poetry in your PATH for dependency management
 
-You should also be inside the *backend/* directory:
+You should be inside the *backend/* directory:
 
 ```bash
 cd the-walking-dead-hub/backend
 ````
 
-## Tutorial
-
-1. Create a *.env* file with the following entries:
+Also create a *.env* file with the following entries:
 
 ```env
 database_host=
@@ -49,6 +46,10 @@ redis_username=default
 redis_password=
 redis_name=0
 ```
+
+## Running locally
+
+1. Make sure Poetry is in your machine's PATH variable.
 
 2. Install project's dependencies:
 
@@ -108,3 +109,37 @@ left join appearanceformtypes apft on apft.id = apf.appearanceformtypeid;
 ```
 
 This query shows episode info (season, number, name), character involved, type of appearance and form of appearance (if applicable).
+
+## Running on a container
+
+1. Make sure Docker is in your machine's PATH variable.
+
+2. Build the application image:
+
+```bash
+docker build -t twd_uvicorn:latest -f Dockerfile.api .
+```
+
+3. Run database migrations inside the container:
+
+```bash
+docker run --rm --env-file .env.docker twd_uvicorn alembic upgrade head
+```
+
+4. Build the database initialization image:
+
+```bash
+docker build -t twd_dbinit:latest -f Dockerfile.dbinit .
+```
+
+5. Initialize the database:
+
+```bash
+docker run --rm --env-file .env.docker twd_dbinit
+```
+
+5. Run the application:
+
+```bash
+docker run -d --env-file .env.docker -p 5000:5000 --name twd_uvicorn twd_uvicorn:latest
+```
