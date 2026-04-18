@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:responsive_framework/responsive_framework.dart' as rf;
+import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_localizations.dart';
 import '../main.dart';
@@ -138,9 +139,33 @@ class HomeScreen extends StatelessWidget {
       Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Center(
-          child: Text(
-            "${AppLocalizations.of(context)!.homepageCreatedByLabel}: github.com/ezgrs",
-            style: Theme.of(context).textTheme.displaySmall,
+          child: Text.rich(
+            TextSpan(
+              style: Theme.of(context).textTheme.displaySmall,
+              children: [
+                TextSpan(
+                  text:
+                      "${AppLocalizations.of(context)!.homepageCreatedByLabel}: ",
+                ),
+                WidgetSpan(
+                  child: InkWell(
+                    onTap: () async {
+                      await launchUrl(
+                        Uri(
+                          scheme: "https",
+                          host: "github.com",
+                          pathSegments: ["ezgrs"],
+                        ),
+                      );
+                    },
+                    child: Text(
+                      "github.com/ezgrs",
+                      style: Theme.of(context).textTheme.displaySmall,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
