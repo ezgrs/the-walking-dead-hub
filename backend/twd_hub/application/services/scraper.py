@@ -5,14 +5,12 @@ from twd_hub.domain.interfaces.html_parser_service import HtmlParser
 from twd_hub.domain.models.episode_page import EpisodePage
 
 
-class EpisodePageScraper(abc.ABC):
+class Scraper(abc.ABC):
     @abc.abstractmethod
-    async def scrape(
-        self, url: str, *, wait_until_selector: str | None = None
-    ) -> EpisodePage: ...
+    async def scrape_episode(self, url: str) -> EpisodePage: ...
 
 
-class DefaultEpisodePageScraper(EpisodePageScraper):
+class DefaultScraper(Scraper):
     html_loader: HtmlLoader
     html_parser: HtmlParser
 
@@ -23,10 +21,9 @@ class DefaultEpisodePageScraper(EpisodePageScraper):
         self.html_parser = html_parser
 
     @typing.override
-    async def scrape(
-        self, url: str, *, wait_until_selector: str | None = None
-    ) -> EpisodePage:
+    async def scrape_episode(self, url: str) -> EpisodePage:
         html_data = await self.html_loader.load(
-            url, wait_until_selector=wait_until_selector
+            url,
+            wait_until_selector="#Trivia",
         )
         return await self.html_parser.parse_episode_page(html_data)

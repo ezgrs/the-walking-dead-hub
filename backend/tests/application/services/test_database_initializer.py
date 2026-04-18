@@ -14,23 +14,21 @@ from twd_hub.domain.models.episode_page import EpisodePage
 import unittest.mock
 
 
-@pytest.fixture(name="episode_page_scraper")
-def create_episode_page_scraper_mock(
+@pytest.fixture(name="scraper")
+def create_scraper_mock(
     mocker: pytest_mock.MockerFixture,
     request: pytest.FixtureRequest,
 ) -> unittest.mock.Mock:
     return_values: dict[str, EpisodePage] = request.param
 
-    async def side_effect(
-        url: str, wait_until_selector: str | None
-    ) -> EpisodePage:
+    async def side_effect(url: str) -> EpisodePage:
         episode_page = return_values.get(url)
         if episode_page is None:
             assert False, f"not handled {url}"
         return episode_page
 
     mock = mocker.Mock()
-    mock.scrape = mocker.AsyncMock(side_effect=side_effect)
+    mock.scrape_episode = mocker.AsyncMock(side_effect=side_effect)
     return mock
 
 
@@ -40,7 +38,7 @@ class _Mock(unittest.mock.Mock):
 
 
 class MockedDatabaseInitializer(DatabaseInitializer):
-    episode_page_scraper: _Mock  # pyright: ignore[reportIncompatibleVariableOverride]
+    scraper: _Mock  # pyright: ignore[reportIncompatibleVariableOverride]
     episode_repository: _Mock  # pyright: ignore[reportIncompatibleVariableOverride]
     entity_repository: _Mock  # pyright: ignore[reportIncompatibleVariableOverride]
     appearance_repository: _Mock  # pyright: ignore[reportIncompatibleVariableOverride]
@@ -50,7 +48,7 @@ class MockedDatabaseInitializer(DatabaseInitializer):
 @pytest.fixture(name="db_initializer")
 def create_database_initializer(
     mocker: pytest_mock.MockerFixture,
-    episode_page_scraper: unittest.mock.Mock,
+    scraper: unittest.mock.Mock,
 ) -> MockedDatabaseInitializer:
     episode_repository = mocker.Mock()
     episode_repository.update_all = mocker.AsyncMock()
@@ -65,7 +63,7 @@ def create_database_initializer(
     appearance_form_repository.update_all = mocker.AsyncMock()
 
     return MockedDatabaseInitializer(
-        episode_page_scraper=episode_page_scraper,
+        scraper=scraper,
         episode_repository=episode_repository,
         entity_repository=entity_repository,
         appearance_repository=appearance_repository,
@@ -74,7 +72,7 @@ def create_database_initializer(
 
 
 @pytest.mark.parametrize(
-    "episode_page_scraper",
+    "scraper",
     [
         {
             "https://walkingdead.fandom.com/wiki/Days_Gone_Bye_(TV_Series)": EpisodePage(
@@ -98,11 +96,10 @@ async def test__import_single_episode_by_load_until_parameter(
     await db_initializer.run(
         initial_page_href="/wiki/Days_Gone_Bye_(TV_Series)", load_until=(1, 1)
     )
-    db_initializer.episode_page_scraper.scrape.assert_has_calls(
+    db_initializer.scraper.scrape_episode.assert_has_calls(
         [
             unittest.mock.call(
                 "https://walkingdead.fandom.com/wiki/Days_Gone_Bye_(TV_Series)",
-                wait_until_selector="#Trivia",
             ),
         ]
     )
@@ -124,7 +121,7 @@ async def test__import_single_episode_by_load_until_parameter(
 
 
 @pytest.mark.parametrize(
-    "episode_page_scraper",
+    "scraper",
     [
         {
             "https://walkingdead.fandom.com/wiki/TS-19": EpisodePage(
@@ -146,11 +143,10 @@ async def test__import_single_episode_by_next_page_href_field(
     db_initializer: MockedDatabaseInitializer,
 ) -> None:
     await db_initializer.run(initial_page_href="/wiki/TS-19", load_until=None)
-    db_initializer.episode_page_scraper.scrape.assert_has_calls(
+    db_initializer.scraper.scrape_episode.assert_has_calls(
         [
             unittest.mock.call(
                 "https://walkingdead.fandom.com/wiki/TS-19",
-                wait_until_selector="#Trivia",
             ),
         ]
     )
@@ -172,7 +168,7 @@ async def test__import_single_episode_by_next_page_href_field(
 
 
 @pytest.mark.parametrize(
-    "episode_page_scraper",
+    "scraper",
     [
         {
             "https://walkingdead.fandom.com/wiki/Days_Gone_Bye_(TV_Series)": EpisodePage(
@@ -216,19 +212,16 @@ async def test__import_multiple_episodes_by_load_until_parameter(
     await db_initializer.run(
         initial_page_href="/wiki/Days_Gone_Bye_(TV_Series)", load_until=(1, 3)
     )
-    db_initializer.episode_page_scraper.scrape.assert_has_calls(
+    db_initializer.scraper.scrape_episode.assert_has_calls(
         [
             unittest.mock.call(
                 "https://walkingdead.fandom.com/wiki/Days_Gone_Bye_(TV_Series)",
-                wait_until_selector="#Trivia",
             ),
             unittest.mock.call(
                 "https://walkingdead.fandom.com/wiki/Guts",
-                wait_until_selector="#Trivia",
             ),
             unittest.mock.call(
                 "https://walkingdead.fandom.com/wiki/Tell_It_to_the_Frogs",
-                wait_until_selector="#Trivia",
             ),
         ]
     )
@@ -262,7 +255,7 @@ async def test__import_multiple_episodes_by_load_until_parameter(
 
 
 @pytest.mark.parametrize(
-    "episode_page_scraper",
+    "scraper",
     [
         {
             "https://walkingdead.fandom.com/wiki/Vatos": EpisodePage(
@@ -304,19 +297,16 @@ async def test__import_multiple_episodes_by_next_page_href_field(
     db_initializer: MockedDatabaseInitializer,
 ) -> None:
     await db_initializer.run(initial_page_href="/wiki/Vatos", load_until=None)
-    db_initializer.episode_page_scraper.scrape.assert_has_calls(
+    db_initializer.scraper.scrape_episode.assert_has_calls(
         [
             unittest.mock.call(
                 "https://walkingdead.fandom.com/wiki/Vatos",
-                wait_until_selector="#Trivia",
             ),
             unittest.mock.call(
                 "https://walkingdead.fandom.com/wiki/Wildfire",
-                wait_until_selector="#Trivia",
             ),
             unittest.mock.call(
                 "https://walkingdead.fandom.com/wiki/TS-19",
-                wait_until_selector="#Trivia",
             ),
         ]
     )
@@ -350,7 +340,7 @@ async def test__import_multiple_episodes_by_next_page_href_field(
 
 
 @pytest.mark.parametrize(
-    "episode_page_scraper",
+    "scraper",
     [
         {
             "https://walkingdead.fandom.com/wiki/TS-19": EpisodePage(
@@ -388,15 +378,13 @@ async def test__import_same_episode__with_conflict(
         await db_initializer.run(
             initial_page_href="/wiki/TS-19", load_until=None
         )
-    db_initializer.episode_page_scraper.scrape.assert_has_calls(
+    db_initializer.scraper.scrape_episode.assert_has_calls(
         [
             unittest.mock.call(
                 "https://walkingdead.fandom.com/wiki/TS-19",
-                wait_until_selector="#Trivia",
             ),
             unittest.mock.call(
                 "https://walkingdead.fandom.com/wiki/TS-20",
-                wait_until_selector="#Trivia",
             ),
         ]
     )
@@ -407,7 +395,7 @@ async def test__import_same_episode__with_conflict(
 
 
 @pytest.mark.parametrize(
-    "episode_page_scraper",
+    "scraper",
     [
         {
             "https://walkingdead.fandom.com/wiki/Days_Gone_Bye_(TV_Series)": EpisodePage(
@@ -439,11 +427,10 @@ async def test__import_one_entity_by_one_episode(
     await db_initializer.run(
         initial_page_href="/wiki/Days_Gone_Bye_(TV_Series)", load_until=None
     )
-    db_initializer.episode_page_scraper.scrape.assert_has_calls(
+    db_initializer.scraper.scrape_episode.assert_has_calls(
         [
             unittest.mock.call(
                 "https://walkingdead.fandom.com/wiki/Days_Gone_Bye_(TV_Series)",
-                wait_until_selector="#Trivia",
             ),
         ]
     )
@@ -492,7 +479,7 @@ async def test__import_one_entity_by_one_episode(
 
 
 @pytest.mark.parametrize(
-    "episode_page_scraper",
+    "scraper",
     [
         {
             "https://walkingdead.fandom.com/wiki/Guts": EpisodePage(
@@ -529,11 +516,10 @@ async def test__import_multiple_entities_by_one_episode(
     db_initializer: MockedDatabaseInitializer,
 ) -> None:
     await db_initializer.run(initial_page_href="/wiki/Guts", load_until=None)
-    db_initializer.episode_page_scraper.scrape.assert_has_calls(
+    db_initializer.scraper.scrape_episode.assert_has_calls(
         [
             unittest.mock.call(
                 "https://walkingdead.fandom.com/wiki/Guts",
-                wait_until_selector="#Trivia",
             ),
         ]
     )
@@ -602,7 +588,7 @@ async def test__import_multiple_entities_by_one_episode(
 
 
 @pytest.mark.parametrize(
-    "episode_page_scraper",
+    "scraper",
     [
         {
             "https://walkingdead.fandom.com/wiki/Days_Gone_Bye_(TV_Series)": EpisodePage(
@@ -652,15 +638,13 @@ async def test__import_one_entity_by_multiple_episodes(
     await db_initializer.run(
         initial_page_href="/wiki/Days_Gone_Bye_(TV_Series)", load_until=None
     )
-    db_initializer.episode_page_scraper.scrape.assert_has_calls(
+    db_initializer.scraper.scrape_episode.assert_has_calls(
         [
             unittest.mock.call(
                 "https://walkingdead.fandom.com/wiki/Days_Gone_Bye_(TV_Series)",
-                wait_until_selector="#Trivia",
             ),
             unittest.mock.call(
                 "https://walkingdead.fandom.com/wiki/Guts",
-                wait_until_selector="#Trivia",
             ),
         ]
     )
@@ -731,7 +715,7 @@ async def test__import_one_entity_by_multiple_episodes(
 
 
 @pytest.mark.parametrize(
-    "episode_page_scraper",
+    "scraper",
     [
         {
             "https://walkingdead.fandom.com/wiki/Days_Gone_Bye_(TV_Series)": EpisodePage(
@@ -785,15 +769,13 @@ async def test__import_one_entity_by_multiple_episodes__with_conflict(
         await db_initializer.run(
             initial_page_href="/wiki/Days_Gone_Bye_(TV_Series)", load_until=None
         )
-    db_initializer.episode_page_scraper.scrape.assert_has_calls(
+    db_initializer.scraper.scrape_episode.assert_has_calls(
         [
             unittest.mock.call(
                 "https://walkingdead.fandom.com/wiki/Days_Gone_Bye_(TV_Series)",
-                wait_until_selector="#Trivia",
             ),
             unittest.mock.call(
                 "https://walkingdead.fandom.com/wiki/Guts",
-                wait_until_selector="#Trivia",
             ),
         ]
     )

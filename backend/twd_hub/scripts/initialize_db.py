@@ -10,8 +10,8 @@ import sqlmodel.ext.asyncio.session
 from twd_hub.application.services.database_initializer import (
     DatabaseInitializer,
 )
-from twd_hub.application.services.episode_page_scraper import (
-    DefaultEpisodePageScraper,
+from twd_hub.application.services.scraper import (
+    DefaultScraper,
 )
 from twd_hub.domain.models.settings import Settings
 from twd_hub.infrastructure.db.repositories.appearance import (
@@ -25,11 +25,11 @@ from twd_hub.infrastructure.db.repositories.episode import EpisodeRepository
 
 from twd_hub.infrastructure.db.session import create_engine
 from twd_hub.infrastructure.db.repositories.alias import AliasRepository
-from twd_hub.infrastructure.decorators.episode_page_scraper.read_through_cache import (
-    ReadThroughCacheEpisodePageScraper,
+from twd_hub.infrastructure.decorators.scraper.read_through_cache import (
+    ReadThroughCacheScraper,
 )
-from twd_hub.infrastructure.decorators.episode_page_scraper.write_through_cache import (
-    WriteThroughCacheEpisodePageScraper,
+from twd_hub.infrastructure.decorators.scraper.write_through_cache import (
+    WriteThroughCacheScraper,
 )
 from twd_hub.infrastructure.decorators.html_loader.read_through_cache import (
     ReadThroughCacheHtmlLoader,
@@ -100,21 +100,21 @@ async def main() -> None:
         html_parser = Bs4HtmlParser(alias_repository=alias_repository)
 
         episode_page_cache = RedisCacheStore(r)
-        episode_page_scraper = DefaultEpisodePageScraper(
+        scraper = DefaultScraper(
             html_loader=html_loader,
             html_parser=html_parser,
         )
-        episode_page_scraper = WriteThroughCacheEpisodePageScraper(
-            episode_page_scraper,
+        scraper = WriteThroughCacheScraper(
+            scraper,
             cache=episode_page_cache,
         )
-        episode_page_scraper = ReadThroughCacheEpisodePageScraper(
-            episode_page_scraper,
+        scraper = ReadThroughCacheScraper(
+            scraper,
             cache=episode_page_cache,
         )
 
         db_initializer = DatabaseInitializer(
-            episode_page_scraper=episode_page_scraper,
+            scraper=scraper,
             episode_repository=episode_repository,
             entity_repository=entity_repository,
             appearance_repository=appearance_repository,

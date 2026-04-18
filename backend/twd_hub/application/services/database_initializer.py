@@ -1,7 +1,5 @@
 import typing
-from twd_hub.application.services.episode_page_scraper import (
-    EpisodePageScraper,
-)
+from twd_hub.application.services.scraper import Scraper
 from twd_hub.domain.interfaces.appearance_form_repository import (
     AppearanceFormRepository,
 )
@@ -15,7 +13,7 @@ from twd_hub.domain.models.episode_page import EpisodePage
 
 
 class DatabaseInitializer:
-    episode_page_scraper: EpisodePageScraper
+    scraper: Scraper
     episode_repository: EpisodeRepository
     entity_repository: EntityRepository
     appearance_repository: AppearanceRepository
@@ -24,13 +22,13 @@ class DatabaseInitializer:
     def __init__(
         self,
         *,
-        episode_page_scraper: EpisodePageScraper,
+        scraper: Scraper,
         episode_repository: EpisodeRepository,
         entity_repository: EntityRepository,
         appearance_repository: AppearanceRepository,
         appearance_form_repository: AppearanceFormRepository,
     ) -> None:
-        self.episode_page_scraper = episode_page_scraper
+        self.scraper = scraper
         self.episode_repository = episode_repository
         self.entity_repository = entity_repository
         self.appearance_repository = appearance_repository
@@ -65,9 +63,8 @@ class DatabaseInitializer:
                     break
                 href = next_page_href
 
-            current_page = await self.episode_page_scraper.scrape(
+            current_page = await self.scraper.scrape_episode(
                 f"https://walkingdead.fandom.com{href}",
-                wait_until_selector="#Trivia",
             )
             episodes_mapping.setdefault(
                 current_page.episode.wiki_href, []
@@ -96,9 +93,7 @@ class DatabaseInitializer:
             if len(episodes_) != 1:
                 raise RuntimeError(
                     f"the following episodes have the same HREF ({episode_wiki_href}): "
-                    + ", ".join(
-                        episode.name for episode in episodes_
-                    )
+                    + ", ".join(episode.name for episode in episodes_)
                 )
             (episode,) = episodes_
             episodes.append(episode)
