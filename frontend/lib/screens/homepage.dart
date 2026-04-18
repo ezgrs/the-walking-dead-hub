@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:responsive_framework/responsive_framework.dart' as rf;
 import 'package:twd_hub/main.dart';
 
@@ -100,11 +101,14 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(height: AppSpacing.lg),
                       Column(
                         children: [
-                          _Button(label: "Personagens"),
+                          _Button(
+                            label: "Personagens",
+                            location: "/characters",
+                          ),
                           SizedBox(height: AppSpacing.md),
-                          _Button(label: "Temporadas"),
+                          _Button(label: "Temporadas", location: "/seasons"),
                           SizedBox(height: AppSpacing.md),
-                          _Button(label: "Episódios"),
+                          _Button(label: "Episódios", location: "/episodes"),
                         ],
                       ),
                     ],
@@ -145,7 +149,9 @@ class HomeScreen extends StatelessWidget {
 
 class _Button extends StatelessWidget {
   final String label;
-  const _Button({required this.label});
+  final String location;
+
+  const _Button({required this.label, required this.location});
 
   @override
   Widget build(BuildContext context) {
@@ -156,7 +162,7 @@ class _Button extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () {},
+        onTap: () => GoRouter.of(context).go(location),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Center(

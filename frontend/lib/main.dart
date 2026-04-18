@@ -74,7 +74,12 @@ class MainApp extends StatelessWidget {
       supportedLocales: const [Locale('en', 'US')],
       locale: const Locale('en', 'US'),
       routerConfig: GoRouter(
-        routes: [GoRoute(path: '/', builder: (context, state) => HomeScreen())],
+        routes: [
+          GoRoute(path: '/', builder: (context, _) => HomeScreen()),
+          GoRoute(path: '/characters', builder: (context, _) => Placeholder()),
+          GoRoute(path: '/seasons', builder: (context, _) => Placeholder()),
+          GoRoute(path: '/episodes', builder: (context, _) => Placeholder()),
+        ],
       ),
     );
   }
