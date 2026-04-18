@@ -21,6 +21,7 @@ dependencies = [
 ]
 
 [tool.poetry]
+package-mode = false
 packages = [{include = "twd_hub"}]
 
 [tool.poetry.group.dev.dependencies]
