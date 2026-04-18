@@ -21,18 +21,15 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 30),
+              padding: const EdgeInsets.all(AppSpacing.lg),
               child: SvgPicture.network(
                 "https://upload.wikimedia.org/wikipedia/commons/e/ef/The_Walking_Dead_2010_logo.svg",
-                height: 80,
+                height: 100,
               ),
             ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 100,
-                  vertical: 50,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: AppSpacing.huge),
                 child: rf.ResponsiveRowColumn(
                   layout:
                       rf.ResponsiveBreakpoints.of(
@@ -44,38 +41,38 @@ class HomeScreen extends StatelessWidget {
                     rf.ResponsiveRowColumnItem(
                       rowFlex: 7,
                       rowFit: FlexFit.tight,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 200),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Expanded(
-                              child: Image.network(
-                                "https://static.independent.co.uk/s3fs-public/thumbnails/image/2017/03/06/13/the-walking-dead-cast-1.jpg",
-                                fit: BoxFit.cover,
-                                alignment: Alignment.topCenter,
-                              ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: Image.network(
+                              "https://static.independent.co.uk/s3fs-public/thumbnails/image/2017/03/06/13/the-walking-dead-cast-1.jpg",
+                              fit: BoxFit.cover,
+                              alignment: Alignment.topCenter,
                             ),
-                            const SizedBox(height: 50),
-                            Center(
-                              child: Text(
-                                "Bem-vindo ao seu guia definitivo de personagens de The "
-                                "Walking Dead!\nAqui você encontra um panorama completo "
-                                "sobre cada sobrevivente que marcou a série — desde sua "
-                                "primeira aparição até seu destino final. Consulte "
-                                "rapidamente quando e como cada personagem morreu, "
-                                "incluindo as circunstâncias principais. Veja se houve "
-                                "aparições em flashbacks e em quais episódios ocorreram. "
-                                "Acompanhe também a primeira aparição, estatísticas ao "
-                                "longo das temporadas e redescubra personagens que podem "
-                                "ter passado despercebidos.",
-                                style: TextStyle(fontSize: 28),
-                              ),
+                          ),
+                          SizedBox(height: AppSpacing.xxxl),
+                          Center(
+                            child: Text(
+                              "Bem-vindo ao seu guia definitivo de personagens de The "
+                              "Walking Dead!\nAqui você encontra um panorama completo "
+                              "sobre cada sobrevivente que marcou a série — desde sua "
+                              "primeira aparição até seu destino final. Consulte "
+                              "rapidamente quando e como cada personagem morreu, "
+                              "incluindo as circunstâncias principais. Veja se houve "
+                              "aparições em flashbacks e em quais episódios ocorreram. "
+                              "Acompanhe também a primeira aparição, estatísticas ao "
+                              "longo das temporadas e redescubra personagens que podem "
+                              "ter passado despercebidos.",
+                              style: TextStyle(fontSize: 28),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
+                    ),
+                    rf.ResponsiveRowColumnItem(
+                      child: const SizedBox(width: AppSpacing.huge),
                     ),
                     rf.ResponsiveRowColumnItem(
                       rowFlex: 4,
@@ -91,13 +88,13 @@ class HomeScreen extends StatelessWidget {
                                 style: TextStyle(fontSize: 64),
                               ),
                             ),
-                            const SizedBox(height: 30),
+                            const SizedBox(height: AppSpacing.lg),
                             Column(
                               children: [
                                 _Button(label: "Personagens"),
-                                SizedBox(height: 25),
+                                SizedBox(height: AppSpacing.md),
                                 _Button(label: "Temporadas"),
-                                SizedBox(height: 25),
+                                SizedBox(height: AppSpacing.md),
                                 _Button(label: "Episódios"),
                               ],
                             ),
@@ -110,7 +107,7 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 30),
+              padding: const EdgeInsets.all(AppSpacing.lg),
               child: Center(
                 child: Text(
                   "Criado por: github.com/ezgrs",
