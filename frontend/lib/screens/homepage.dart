@@ -66,12 +66,24 @@ class HomeScreen extends StatelessWidget {
                     ),
                     SizedBox(height: AppSpacing.xxxl),
                     Center(
-                      child: Text(
-                        "${AppLocalizations.of(context)!.homepageIntroductionTitleText}"
-                        "\n"
-                        "${AppLocalizations.of(context)!.homepageIntroductionBodyText}",
-                        style: TextStyle(fontSize: 28),
-                        textAlign: TextAlign.justify,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            AppLocalizations.of(
+                              context,
+                            )!.homepageIntroductionTitleText,
+                            style: TextStyle(fontSize: 42),
+                            textAlign: TextAlign.justify,
+                          ),
+                          Text(
+                            AppLocalizations.of(
+                              context,
+                            )!.homepageIntroductionBodyText,
+                            style: TextStyle(fontSize: 28),
+                            textAlign: TextAlign.justify,
+                          ),
+                        ],
                       ),
                     ),
                   ],
