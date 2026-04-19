@@ -13,6 +13,44 @@ import '../../widgets/header.dart';
 import '../../widgets/maybe.dart';
 import 'bloc.dart';
 
+class _EntityCard extends StatelessWidget {
+  final EntitiesBloc bloc;
+  final Entity entity;
+
+  const _EntityCard({required this.entity, required this.bloc});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: InkWell(
+        onTap: () => bloc.add(EpisodesLoadRequested(entityId: entity.id)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                entity.name,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                entity.wikiHref,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class EntitiesScreen extends StatelessWidget {
   final EntitiesBloc bloc;
 
@@ -23,31 +61,42 @@ class EntitiesScreen extends StatelessWidget {
     IndicesLoadSuccessBase state, {
     required bool scrollable,
   }) {
+    final List<Widget> children = state.indices
+        .map(
+          (obj) => AppButton(
+            label: obj.index,
+            onTap: () => bloc.add(IndexLoadRequested(index: obj.index)),
+            alignment: scrollable ? null : Alignment.center,
+            padding: EdgeInsets.symmetric(
+              vertical: AppSpacing.md,
+              horizontal: scrollable ? AppSpacing.md : AppSpacing.sm,
+            ),
+          ),
+        )
+        .toList();
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.huge),
-          child: Row(
-            children: state.indices
-                .map(
-                  (obj) => Expanded(
-                    child: AppButton(
-                      label: obj.index,
-                      onTap: () =>
-                          bloc.add(IndexLoadRequested(index: obj.index)),
-                      padding: EdgeInsets.symmetric(
-                        vertical: AppSpacing.md,
-                        horizontal: AppSpacing.sm,
-                      ),
-                    ),
-                  ),
-                )
-                .expand(
-                  (child) => [const SizedBox(width: AppSpacing.lg), child],
-                )
-                .skip(1)
-                .toList(),
+          padding: EdgeInsets.symmetric(
+            horizontal: scrollable ? AppSpacing.md : AppSpacing.huge,
           ),
+          child: scrollable
+              ? Wrap(
+                  spacing: AppSpacing.xs,
+                  runSpacing: AppSpacing.xs,
+                  children: children,
+                )
+              : Row(
+                  children: children
+                      .map((child) => Expanded(child: child))
+                      .expand(
+                        (child) => [
+                          const SizedBox(width: AppSpacing.md),
+                          child,
+                        ],
+                      )
+                      .toList(),
+                ),
         ),
         const SizedBox(height: AppSpacing.lg),
         MaybeWidget(
@@ -72,66 +121,52 @@ class EntitiesScreen extends StatelessWidget {
     EntitiesLoadSuccessBase state, {
     required bool scrollable,
   }) {
-    final List<List<Entity>> groups = state.entities.chunked(2).toList();
+    const EdgeInsets bodyPadding = EdgeInsets.symmetric(
+      horizontal: AppSpacing.lg,
+    );
+    final Widget body;
+    if (scrollable) {
+      body = Padding(
+        padding: bodyPadding,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: state.entities
+              .map((entity) => _EntityCard(bloc: bloc, entity: entity))
+              .expand((child) => [const SizedBox(height: AppSpacing.sm), child])
+              .skip(1)
+              .toList(),
+        ),
+      );
+    } else {
+      final List<List<Entity>> groups = state.entities.chunked(2).toList();
+      body = ListView.builder(
+        padding: bodyPadding,
+        itemCount: groups.length,
+        itemBuilder: (context, i) {
+          final List<Entity> entities = groups[i];
+          return Row(
+            children: entities
+                .map(
+                  (entity) => Expanded(
+                    child: _EntityCard(bloc: bloc, entity: entity),
+                  ),
+                )
+                .expand(
+                  (child) => [const SizedBox(width: AppSpacing.sm), child],
+                )
+                .skip(1)
+                .toList(),
+          );
+        },
+      );
+    }
+
     return rf.ResponsiveRowColumn(
       layout: scrollable
           ? rf.ResponsiveRowColumnType.COLUMN
           : rf.ResponsiveRowColumnType.ROW,
       children: [
-        rf.ResponsiveRowColumnItem(
-          rowFit: FlexFit.tight,
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-            itemCount: groups.length,
-            itemBuilder: (context, i) {
-              final List<Entity> entities = groups[i];
-              return Row(
-                children: entities
-                    .map(
-                      (entity) => Expanded(
-                        child: Card(
-                          child: InkWell(
-                            onTap: () => bloc.add(
-                              EpisodesLoadRequested(entityId: entity.id),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.md,
-                                vertical: AppSpacing.sm,
-                              ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    entity.name,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.headlineSmall,
-                                  ),
-                                  const SizedBox(height: AppSpacing.xs),
-                                  Text(
-                                    entity.wikiHref,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium
-                                        ?.copyWith(color: Colors.grey),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    )
-                    .expand(
-                      (child) => [const SizedBox(width: AppSpacing.sm), child],
-                    )
-                    .skip(1)
-                    .toList(),
-              );
-            },
-          ),
-        ),
+        rf.ResponsiveRowColumnItem(rowFit: FlexFit.tight, child: body),
         rf.ResponsiveRowColumnItem(
           rowFit: FlexFit.tight,
           child: const SizedBox.shrink(),
@@ -147,9 +182,11 @@ class EntitiesScreen extends StatelessWidget {
     ).smallerThan(kDeviceDesktop);
     final List<Widget> children = [
       HeaderWidget(),
-      Text(
-        AppLocalizations.of(context)!.homepageEntitiesButtonLabel,
-        style: Theme.of(context).textTheme.displayLarge,
+      Center(
+        child: Text(
+          AppLocalizations.of(context)!.homepageEntitiesButtonLabel,
+          style: Theme.of(context).textTheme.displayLarge,
+        ),
       ),
       const SizedBox(height: AppSpacing.lg),
       MaybeWidget(
