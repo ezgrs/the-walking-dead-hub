@@ -6,22 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/app_localizations.dart';
 import '../../main.dart';
 import '../../widgets/header.dart';
-
-class MaybeWidget extends StatelessWidget {
-  final Widget child;
-  final bool enabled;
-  final Widget Function(Widget child) builder;
-
-  const MaybeWidget({
-    super.key,
-    required this.enabled,
-    required this.builder,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) => enabled ? builder(child) : child;
-}
+import '../../widgets/maybe.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -110,7 +95,7 @@ class HomeScreen extends StatelessWidget {
                             label: AppLocalizations.of(
                               context,
                             )!.homepageEntitiesButtonLabel,
-                            location: "/characters",
+                            location: "/entities",
                           ),
                           SizedBox(height: AppSpacing.md),
                           _Button(

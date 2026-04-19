@@ -18,11 +18,31 @@ dependencies:
   flutter_svg: ^2.2.4
   intl: ^0.20.2
   url_launcher: ^6.3.2
+  dorm_framework: ^1.0.0-alpha.6
+  dorm_annotations: ^1.0.0-alpha.6
+  universal_io: ^2.3.1
+  http: ^1.6.0
+  get_it: ^9.2.1
+
+dependency_overrides: 
+  dorm_annotations:
+    git:
+      url: https://github.com/enzo-santos/dorm.git
+      path: dorm_annotations
+      ref: develop
+  dorm_generator:
+    git:
+      url: https://github.com/enzo-santos/dorm.git
+      path: dorm_generator
+      ref: develop
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0
+  flutter_lints: ^5.0.0
+  build_runner: ^2.13.1
+  json_serializable: ^6.13.0
+  dorm_generator: ^1.0.0-alpha.6
 
 flutter:
   generate: true

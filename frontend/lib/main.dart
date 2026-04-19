@@ -3,11 +3,19 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:responsive_framework/responsive_framework.dart' as rf;
 
+import 'common/authenticator.dart';
+import 'common/vault.dart';
+import 'features/entities/bloc.dart';
+import 'features/entities/bloc_event.dart';
+import 'features/entities/repository.dart';
+import 'features/entities/screen.dart';
 import 'features/home/screen.dart';
 import 'l10n/app_localizations.dart';
 
 void main() {
-  runApp(const MainApp());
+  runApp(
+    MainApp(authenticator: PublicAuthenticator(), vault: HardcodedVault()),
+  );
 }
 
 const String kDeviceDesktop = 'DESKTOP';
@@ -39,7 +47,10 @@ class LocaleController {
 final LocaleController localeController = LocaleController();
 
 class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+  final Authenticator authenticator;
+  final Vault vault;
+
+  const MainApp({super.key, required this.authenticator, required this.vault});
 
   @override
   Widget build(BuildContext context) {
@@ -94,8 +105,15 @@ class MainApp extends StatelessWidget {
             routes: [
               GoRoute(path: '/', builder: (context, _) => HomeScreen()),
               GoRoute(
-                path: '/characters',
-                builder: (context, _) => Placeholder(),
+                path: '/entities',
+                builder: (context, _) => EntitiesScreen(
+                  bloc: EntitiesBloc(
+                    repository: EntitiesRepository(
+                      vault: vault,
+                      authenticator: authenticator,
+                    ),
+                  )..add(const IndicesLoadRequested()),
+                ),
               ),
               GoRoute(path: '/seasons', builder: (context, _) => Placeholder()),
               GoRoute(
