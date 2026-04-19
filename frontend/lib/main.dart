@@ -38,7 +38,9 @@ class AppSpacing {
 }
 
 class LocaleController {
-  final ValueNotifier<Locale> locale = ValueNotifier(const Locale('en', 'US'));
+  final ValueNotifier<Locale> locale = ValueNotifier(
+    AppLocalizations.supportedLocales[0],
+  );
 
   void setLocale(Locale newLocale) {
     locale.value = newLocale;
@@ -138,7 +140,7 @@ class MainApp extends StatelessWidget {
               );
               return child;
             },
-            supportedLocales: const [Locale('en', 'US'), Locale('pt', 'BR')],
+            supportedLocales: AppLocalizations.supportedLocales,
             locale: locale,
             routerConfig: context.read<GoRouter>(),
           );
