@@ -22,7 +22,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homepageIntroductionTitleText =>
-      'A guide to The Walking Dead characters.';
+      'A guide to The Walking Dead characters';
 
   @override
   String get homepageIntroductionBodyText =>

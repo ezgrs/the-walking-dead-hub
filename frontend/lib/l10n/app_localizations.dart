@@ -125,7 +125,7 @@ abstract class AppLocalizations {
   /// No description provided for @homepageIntroductionTitleText.
   ///
   /// In en, this message translates to:
-  /// **'A guide to The Walking Dead characters.'**
+  /// **'A guide to The Walking Dead characters'**
   String get homepageIntroductionTitleText;
 
   /// No description provided for @homepageIntroductionBodyText.
