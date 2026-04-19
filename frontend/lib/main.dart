@@ -37,17 +37,9 @@ class AppSpacing {
   const AppSpacing._();
 }
 
-class LocaleController {
-  final ValueNotifier<Locale> locale = ValueNotifier(
-    AppLocalizations.supportedLocales[0],
-  );
-
-  void setLocale(Locale newLocale) {
-    locale.value = newLocale;
-  }
+class LocaleController extends ValueNotifier<Locale> {
+  LocaleController(super.value);
 }
-
-final LocaleController localeController = LocaleController();
 
 class MainApp extends StatelessWidget {
   final Authenticator authenticator;
@@ -94,58 +86,58 @@ class MainApp extends StatelessWidget {
             ],
           ),
         ),
+        ChangeNotifierProvider<LocaleController>(
+          create: (_) => LocaleController(AppLocalizations.supportedLocales[0]),
+        ),
       ],
-      child: ValueListenableBuilder(
-        valueListenable: localeController.locale,
-        builder: (context, locale, _) {
-          return MaterialApp.router(
-            title: 'The Walking Dead Hub',
-            debugShowCheckedModeBanner: false,
-            theme: ThemeData(
-              useMaterial3: true,
-              inputDecorationTheme: const InputDecorationTheme(
-                border: OutlineInputBorder(),
-              ),
-              fontFamily: "JollyLodger",
-              scrollbarTheme: ScrollbarThemeData(
-                thickness: WidgetStateProperty.all(10),
-                radius: Radius.zero,
-                thumbColor: WidgetStateProperty.all(Colors.grey),
-                thumbVisibility: WidgetStateProperty.all(true),
-              ),
+      builder: (context, _) {
+        return MaterialApp.router(
+          title: 'The Walking Dead Hub',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            useMaterial3: true,
+            inputDecorationTheme: const InputDecorationTheme(
+              border: OutlineInputBorder(),
             ),
-            localizationsDelegates: [
-              AppLocalizations.delegate,
-              ...GlobalMaterialLocalizations.delegates,
-            ],
-            builder: (context, child) {
-              child = rf.ResponsiveBreakpoints.builder(
-                child: child!,
-                breakpoints: const [
-                  rf.Breakpoint(start: 0, end: 319),
-                  rf.Breakpoint(start: 320, end: 719, name: kDeviceMobile),
-                  rf.Breakpoint(start: 720, end: 1279, name: kDeviceTablet),
-                  rf.Breakpoint(start: 1280, end: 1600, name: kDeviceLaptop),
-                  rf.Breakpoint(
-                    start: 1601,
-                    end: double.infinity,
-                    name: kDeviceDesktop,
-                  ),
-                ],
-              );
-              final MediaQueryData media = MediaQuery.of(context);
-              child = MediaQuery(
-                data: media.copyWith(textScaler: media.textScaler),
-                child: child,
-              );
-              return child;
-            },
-            supportedLocales: AppLocalizations.supportedLocales,
-            locale: locale,
-            routerConfig: context.read<GoRouter>(),
-          );
-        },
-      ),
+            fontFamily: "JollyLodger",
+            scrollbarTheme: ScrollbarThemeData(
+              thickness: WidgetStateProperty.all(10),
+              radius: Radius.zero,
+              thumbColor: WidgetStateProperty.all(Colors.grey),
+              thumbVisibility: WidgetStateProperty.all(true),
+            ),
+          ),
+          localizationsDelegates: [
+            AppLocalizations.delegate,
+            ...GlobalMaterialLocalizations.delegates,
+          ],
+          builder: (context, child) {
+            child = rf.ResponsiveBreakpoints.builder(
+              child: child!,
+              breakpoints: const [
+                rf.Breakpoint(start: 0, end: 319),
+                rf.Breakpoint(start: 320, end: 719, name: kDeviceMobile),
+                rf.Breakpoint(start: 720, end: 1279, name: kDeviceTablet),
+                rf.Breakpoint(start: 1280, end: 1600, name: kDeviceLaptop),
+                rf.Breakpoint(
+                  start: 1601,
+                  end: double.infinity,
+                  name: kDeviceDesktop,
+                ),
+              ],
+            );
+            final MediaQueryData media = MediaQuery.of(context);
+            child = MediaQuery(
+              data: media.copyWith(textScaler: media.textScaler),
+              child: child,
+            );
+            return child;
+          },
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: context.watch<LocaleController>().value,
+          routerConfig: context.read<GoRouter>(),
+        );
+      },
     );
   }
 }

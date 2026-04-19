@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:provider/provider.dart';
 import 'package:responsive_framework/responsive_framework.dart' as rf;
 
 import '../l10n/app_localizations.dart';
@@ -14,9 +15,9 @@ class HeaderWidget extends StatelessWidget {
       "https://upload.wikimedia.org/wikipedia/commons/e/ef/The_Walking_Dead_2010_logo.svg",
       height: 100,
     );
-    final Widget localizationWidget = ValueListenableBuilder(
-      valueListenable: localeController.locale,
-      builder: (context, locale, _) {
+    final Widget localizationWidget = Consumer<LocaleController>(
+      builder: (context, localeController, _) {
+        final Locale locale = localeController.value;
         final int index = AppLocalizations.supportedLocales.indexOf(locale);
         final Locale nextLocale =
             AppLocalizations.supportedLocales[(index + 1) %
@@ -27,7 +28,7 @@ class HeaderWidget extends StatelessWidget {
           _ => "",
         };
         return TextButton.icon(
-          onPressed: () => localeController.setLocale(nextLocale),
+          onPressed: () => localeController.value = nextLocale,
           label: Text("$emojiText  ${nextLocale.languageCode.toUpperCase()}"),
           style: TextButton.styleFrom(
             backgroundColor: Colors.black,
