@@ -1,10 +1,12 @@
+import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:responsive_framework/responsive_framework.dart' as rf;
-import 'package:twd_hub/features/entities/bloc_event.dart';
-import 'package:twd_hub/features/entities/bloc_state.dart';
-import 'package:twd_hub/models.dart';
+
+import 'bloc_event.dart';
+import 'bloc_state.dart';
+import '../../l10n/app_localizations.dart';
+import '../../models.dart';
 import '../../main.dart';
 import '../../widgets/button.dart';
 import '../../widgets/header.dart';
@@ -47,20 +49,72 @@ class EntitiesScreen extends StatelessWidget {
                 .toList(),
           ),
         ),
+        const SizedBox(height: AppSpacing.lg),
         MaybeWidget(
           enabled: !scrollable,
           builder: (child) => Expanded(child: child),
           child: switch (state) {
             IndicesInitial() => Text("Selecione um índice para pesquisar."),
             EntitiesLoadInProgress() => Text("loading!"),
-            EntitiesLoadSuccessBase() => ListView.builder(
-              itemCount: state.entities.length,
-              itemBuilder: (context, i) {
-                final Entity entity = state.entities[i];
-                return Text(entity.name);
-              },
+            EntitiesLoadSuccessBase() => _buildEntitiesLoadSuccessState(
+              context,
+              state,
+              scrollable: scrollable,
             ),
           },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEntitiesLoadSuccessState(
+    BuildContext context,
+    EntitiesLoadSuccessBase state, {
+    required bool scrollable,
+  }) {
+    final List<List<Entity>> groups = state.entities.chunked(2).toList();
+    return rf.ResponsiveRowColumn(
+      layout: scrollable
+          ? rf.ResponsiveRowColumnType.COLUMN
+          : rf.ResponsiveRowColumnType.ROW,
+      children: [
+        rf.ResponsiveRowColumnItem(
+          rowFit: FlexFit.tight,
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            itemCount: groups.length,
+            itemBuilder: (context, i) {
+              final List<Entity> entities = groups[i];
+              return Row(
+                children: entities
+                    .map(
+                      (entity) => Expanded(
+                        child: Card(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md,
+                              vertical: AppSpacing.sm,
+                            ),
+                            child: Text(
+                              entity.name,
+                              style: Theme.of(context).textTheme.headlineSmall,
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                    .expand(
+                      (child) => [const SizedBox(width: AppSpacing.sm), child],
+                    )
+                    .skip(1)
+                    .toList(),
+              );
+            },
+          ),
+        ),
+        rf.ResponsiveRowColumnItem(
+          rowFit: FlexFit.tight,
+          child: const SizedBox.shrink(),
         ),
       ],
     );
@@ -73,6 +127,11 @@ class EntitiesScreen extends StatelessWidget {
     ).smallerThan(kDeviceDesktop);
     final List<Widget> children = [
       HeaderWidget(),
+      Text(
+        AppLocalizations.of(context)!.homepageEntitiesButtonLabel,
+        style: Theme.of(context).textTheme.displayLarge,
+      ),
+      const SizedBox(height: AppSpacing.lg),
       MaybeWidget(
         enabled: !scrollable,
         builder: (child) => Expanded(child: child),
@@ -92,6 +151,7 @@ class EntitiesScreen extends StatelessWidget {
           },
         ),
       ),
+      const SizedBox(height: AppSpacing.lg),
     ];
     return Scaffold(
       body: Ink(
