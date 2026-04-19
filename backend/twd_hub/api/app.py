@@ -6,6 +6,7 @@ import http.client
 import dotenv
 import fastapi
 import fastapi.exception_handlers
+import fastapi.middleware.cors
 
 
 import twd_hub.api.fastapi_lifespan_dependencies
@@ -51,6 +52,13 @@ def create_app() -> fastapi.FastAPI:
             "email": "ezgrs.dev@gmail.com",
         },
         lifespan=lifespan,
+    )
+    app.add_middleware(
+        fastapi.middleware.cors.CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     @app.exception_handler(fastapi.exceptions.HTTPException)
