@@ -90,11 +90,15 @@ class EntitiesScreen extends StatelessWidget {
                     .map(
                       (entity) => Expanded(
                         child: Card(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.md,
-                              vertical: AppSpacing.sm,
+                          child: InkWell(
+                            onTap: () => bloc.add(
+                              EpisodesLoadRequested(entityId: entity.id),
                             ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.md,
+                                vertical: AppSpacing.sm,
+                              ),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
