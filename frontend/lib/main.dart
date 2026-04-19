@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:responsive_framework/responsive_framework.dart' as rf;
 
 import 'common/authenticator.dart';
@@ -54,54 +55,10 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder(
-      valueListenable: localeController.locale,
-      builder: (context, locale, _) {
-        return MaterialApp.router(
-          title: 'The Walking Dead Hub',
-          debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            useMaterial3: true,
-            inputDecorationTheme: const InputDecorationTheme(
-              border: OutlineInputBorder(),
-            ),
-            fontFamily: "JollyLodger",
-            scrollbarTheme: ScrollbarThemeData(
-              thickness: WidgetStateProperty.all(10),
-              radius: Radius.zero,
-              thumbColor: WidgetStateProperty.all(Colors.grey),
-              thumbVisibility: WidgetStateProperty.all(true),
-            ),
-          ),
-          localizationsDelegates: [
-            AppLocalizations.delegate,
-            ...GlobalMaterialLocalizations.delegates,
-          ],
-          builder: (context, child) {
-            child = rf.ResponsiveBreakpoints.builder(
-              child: child!,
-              breakpoints: const [
-                rf.Breakpoint(start: 0, end: 319),
-                rf.Breakpoint(start: 320, end: 719, name: kDeviceMobile),
-                rf.Breakpoint(start: 720, end: 1279, name: kDeviceTablet),
-                rf.Breakpoint(start: 1280, end: 1600, name: kDeviceLaptop),
-                rf.Breakpoint(
-                  start: 1601,
-                  end: double.infinity,
-                  name: kDeviceDesktop,
-                ),
-              ],
-            );
-            final MediaQueryData media = MediaQuery.of(context);
-            child = MediaQuery(
-              data: media.copyWith(textScaler: media.textScaler),
-              child: child,
-            );
-            return child;
-          },
-          supportedLocales: const [Locale('en', 'US'), Locale('pt', 'BR')],
-          locale: locale,
-          routerConfig: GoRouter(
+    return MultiProvider(
+      providers: [
+        Provider<GoRouter>(
+          create: (_) => GoRouter(
             routes: [
               GoRoute(path: '/', builder: (context, _) => HomeScreen()),
               GoRoute(
@@ -122,8 +79,59 @@ class MainApp extends StatelessWidget {
               ),
             ],
           ),
-        );
-      },
+        ),
+      ],
+      child: ValueListenableBuilder(
+        valueListenable: localeController.locale,
+        builder: (context, locale, _) {
+          return MaterialApp.router(
+            title: 'The Walking Dead Hub',
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              useMaterial3: true,
+              inputDecorationTheme: const InputDecorationTheme(
+                border: OutlineInputBorder(),
+              ),
+              fontFamily: "JollyLodger",
+              scrollbarTheme: ScrollbarThemeData(
+                thickness: WidgetStateProperty.all(10),
+                radius: Radius.zero,
+                thumbColor: WidgetStateProperty.all(Colors.grey),
+                thumbVisibility: WidgetStateProperty.all(true),
+              ),
+            ),
+            localizationsDelegates: [
+              AppLocalizations.delegate,
+              ...GlobalMaterialLocalizations.delegates,
+            ],
+            builder: (context, child) {
+              child = rf.ResponsiveBreakpoints.builder(
+                child: child!,
+                breakpoints: const [
+                  rf.Breakpoint(start: 0, end: 319),
+                  rf.Breakpoint(start: 320, end: 719, name: kDeviceMobile),
+                  rf.Breakpoint(start: 720, end: 1279, name: kDeviceTablet),
+                  rf.Breakpoint(start: 1280, end: 1600, name: kDeviceLaptop),
+                  rf.Breakpoint(
+                    start: 1601,
+                    end: double.infinity,
+                    name: kDeviceDesktop,
+                  ),
+                ],
+              );
+              final MediaQueryData media = MediaQuery.of(context);
+              child = MediaQuery(
+                data: media.copyWith(textScaler: media.textScaler),
+                child: child,
+              );
+              return child;
+            },
+            supportedLocales: const [Locale('en', 'US'), Locale('pt', 'BR')],
+            locale: locale,
+            routerConfig: context.read<GoRouter>(),
+          );
+        },
+      ),
     );
   }
 }
