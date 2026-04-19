@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+*.g.dart
+*.dorm.dart
+lib/l10n/app_localizations*.dart
