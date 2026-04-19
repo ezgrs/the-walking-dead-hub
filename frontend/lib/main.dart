@@ -60,22 +60,34 @@ class MainApp extends StatelessWidget {
         Provider<GoRouter>(
           create: (_) => GoRouter(
             routes: [
-              GoRoute(path: '/', builder: (context, _) => HomeScreen()),
+              GoRoute(
+                path: '/',
+                pageBuilder: (context, state) =>
+                    NoTransitionPage(key: state.pageKey, child: HomeScreen()),
+              ),
               GoRoute(
                 path: '/entities',
-                builder: (context, _) => EntitiesScreen(
-                  bloc: EntitiesBloc(
-                    repository: EntitiesRepository(
-                      vault: vault,
-                      authenticator: authenticator,
-                    ),
-                  )..add(const IndicesLoadRequested()),
+                pageBuilder: (context, state) => NoTransitionPage(
+                  key: state.pageKey,
+                  child: EntitiesScreen(
+                    bloc: EntitiesBloc(
+                      repository: EntitiesRepository(
+                        vault: vault,
+                        authenticator: authenticator,
+                      ),
+                    )..add(const IndicesLoadRequested()),
+                  ),
                 ),
               ),
-              GoRoute(path: '/seasons', builder: (context, _) => Placeholder()),
+              GoRoute(
+                path: '/seasons',
+                pageBuilder: (context, state) =>
+                    NoTransitionPage(key: state.pageKey, child: Placeholder()),
+              ),
               GoRoute(
                 path: '/episodes',
-                builder: (context, _) => Placeholder(),
+                pageBuilder: (context, state) =>
+                    NoTransitionPage(key: state.pageKey, child: Placeholder()),
               ),
             ],
           ),
