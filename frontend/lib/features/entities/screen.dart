@@ -95,9 +95,25 @@ class EntitiesScreen extends StatelessWidget {
                               horizontal: AppSpacing.md,
                               vertical: AppSpacing.sm,
                             ),
-                            child: Text(
-                              entity.name,
-                              style: Theme.of(context).textTheme.headlineSmall,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    entity.name,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.headlineSmall,
+                                  ),
+                                  const SizedBox(height: AppSpacing.xs),
+                                  Text(
+                                    entity.wikiHref,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(color: Colors.grey),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
