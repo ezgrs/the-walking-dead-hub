@@ -12,7 +12,7 @@ abstract class _IndexOut {
 @Data()
 abstract class _EpisodeOut {
   @ModelField(name: "episode", referTo: _Episode)
-  get entity;
+  get episode;
 
   @Field(name: "appearance_type_label")
   String get appearanceTypeLabel;

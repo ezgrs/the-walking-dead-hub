@@ -31,5 +31,5 @@ abstract class _Episode {
   int get seasonNumber;
 
   @Field(name: "episode_number")
-  String get episodeNumber;
+  int get episodeNumber;
 }

@@ -1,7 +1,10 @@
 import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:responsive_framework/responsive_framework.dart' as rf;
+import 'package:timelines_plus/timelines_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'bloc_event.dart';
 import 'bloc_state.dart';
@@ -167,10 +170,178 @@ class EntitiesScreen extends StatelessWidget {
           : rf.ResponsiveRowColumnType.ROW,
       children: [
         rf.ResponsiveRowColumnItem(rowFit: FlexFit.tight, child: body),
-        rf.ResponsiveRowColumnItem(
-          rowFit: FlexFit.tight,
-          child: const SizedBox.shrink(),
-        ),
+        if (!scrollable)
+          rf.ResponsiveRowColumnItem(
+            rowFit: FlexFit.tight,
+            child: switch (state) {
+              EntitiesInitial() => Center(
+                child: Text(
+                  "Select a character or location to view its data.",
+                  style: Theme.of(context).textTheme.displaySmall,
+                ),
+              ),
+              EntitySelectedInitial() => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              state.stats.entity.name,
+                              style: Theme.of(context).textTheme.displayMedium,
+                            ),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              state.stats.entity.wikiHref,
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(width: AppSpacing.huge),
+                        InkWell(
+                          onTap: () async {
+                            await launchUrl(
+                              Uri(
+                                scheme: "https",
+                                host: "walkingdead.fandom.com",
+                                path: state.stats.entity.wikiHref,
+                              ),
+                            );
+                          },
+                          child: SvgPicture.network(
+                            "https://upload.wikimedia.org/wikipedia/commons/e/ee/Fandom_heart-logo.svg",
+                            height: 36,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    Expanded(
+                      child: rf.ResponsiveRowColumn(
+                        layout: scrollable
+                            ? rf.ResponsiveRowColumnType.COLUMN
+                            : rf.ResponsiveRowColumnType.ROW,
+                        children: [
+                          rf.ResponsiveRowColumnItem(
+                            rowFit: FlexFit.tight,
+                            child: Column(
+                              children: [
+                                Text(
+                                  "Timeline",
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.displaySmall,
+                                ),
+                                Expanded(
+                                  child: Timeline.tileBuilder(
+                                    theme: TimelineThemeData(
+                                      nodePosition: 0,
+                                      connectorTheme: const ConnectorThemeData(
+                                        thickness: 2.5,
+                                        color: Colors.grey,
+                                      ),
+                                      indicatorTheme: const IndicatorThemeData(
+                                        size: 16,
+                                      ),
+                                    ),
+                                    builder: TimelineTileBuilder.connected(
+                                      itemCount: state.stats.episodes.length,
+                                      connectionDirection:
+                                          ConnectionDirection.before,
+                                      contentsBuilder: (context, index) {
+                                        final EpisodeOut appearance =
+                                            state.stats.episodes[index];
+                                        final Episode episode =
+                                            appearance.episode;
+                                        final isNewSeason =
+                                            index == 0 ||
+                                            episode.seasonNumber !=
+                                                state
+                                                    .stats
+                                                    .episodes[index - 1]
+                                                    .episode
+                                                    .seasonNumber;
+
+                                        return Padding(
+                                          padding: const EdgeInsets.all(12.0),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              if (isNewSeason)
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        bottom: 6,
+                                                      ),
+                                                  child: Text(
+                                                    'Season ${episode.seasonNumber}',
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .headlineLarge
+                                                        ?.copyWith(
+                                                          color:
+                                                              Colors.blueAccent,
+                                                        ),
+                                                  ),
+                                                ),
+                                              Text(
+                                                'E${episode.episodeNumber}: ${episode.name} (${appearance.appearanceTypeLabel}, ${appearance.appearanceFormTypeLabel})',
+                                                style: Theme.of(
+                                                  context,
+                                                ).textTheme.headlineMedium,
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                      indicatorBuilder: (context, index) {
+                                        final Episode episode =
+                                            state.stats.episodes[index].episode;
+                                        final isSeasonStart =
+                                            index == 0 ||
+                                            episode.seasonNumber !=
+                                                state
+                                                    .stats
+                                                    .episodes[index - 1]
+                                                    .episode
+                                                    .seasonNumber;
+
+                                        return DotIndicator(
+                                          color: isSeasonStart
+                                              ? Colors.blue
+                                              : Colors.grey,
+                                        );
+                                      },
+                                      connectorBuilder: (_, index, type) =>
+                                          const SolidLineConnector(),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (!scrollable)
+                            rf.ResponsiveRowColumnItem(
+                              child: VerticalDivider(),
+                            ),
+                          rf.ResponsiveRowColumnItem(
+                            rowFit: FlexFit.tight,
+                            child: const SizedBox.shrink(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            },
+          ),
       ],
     );
   }
