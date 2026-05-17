@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - backend/
+    paths-ignore:
+      - backend/**/*.md
   workflow_dispatch:
 
 jobs:
