@@ -34,7 +34,7 @@ jobs:
       - name: Build and push image
         run: |
           IMAGE=ghcr.io/${{ vars.GHCR_BACKEND_IMAGE_NAME }}:${{ github.sha }}
-          docker build -t $IMAGE .
+          docker build -t $IMAGE -f Dockerfile.api .
           docker push $IMAGE
 
           echo "IMAGE=$IMAGE" >> $GITHUB_ENV
