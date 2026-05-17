@@ -51,7 +51,7 @@ async def read_indices(
     ]
 
 
-@router.get("/")
+@router.get("")
 async def read_all(
     session: twd_hub.api.dependencies.database_session.Dependency,
     index: typing.Annotated[
