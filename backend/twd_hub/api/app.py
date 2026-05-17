@@ -43,7 +43,7 @@ def create_app() -> fastapi.FastAPI:
     app = fastapi.FastAPI(
         title="The Walking Dead Hub API",
         description=(
-            "A The Walking Dead character database providing a complete overview of each character's journey."
+            "A The Walking Dead character database providing a overview of each character's journey."
         ),
         version=_read_poetry_version(_find_nearest_pyproject(os.getcwd())),
         contact={
