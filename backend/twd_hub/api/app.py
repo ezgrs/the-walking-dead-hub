@@ -41,7 +41,7 @@ def create_app() -> fastapi.FastAPI:
     lifespan.register(twd_hub.api.dependencies.database_engine.evaluate)
 
     app = fastapi.FastAPI(
-        title="The Walking Dead Hub",
+        title="The Walking Dead Hub API",
         description=(
             "A The Walking Dead character database providing a complete overview of each character's journey."
         ),
