@@ -6,7 +6,6 @@ on:
       - main
     paths:
       - frontend/
-      - '!frontend/**/*.md'
   workflow_dispatch:
 
 permissions:
