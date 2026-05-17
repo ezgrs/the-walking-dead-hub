@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -13,9 +14,14 @@ import 'features/entities/screen.dart';
 import 'features/home/screen.dart';
 import 'l10n/app_localizations.dart';
 
-void main() {
+Future<void> main() async {
+  final DotEnv data = DotEnv();
+  await data.load();
   runApp(
-    MainApp(authenticator: PublicAuthenticator(), vault: HardcodedVault()),
+    MainApp(
+      authenticator: PublicAuthenticator(),
+      vault: DecodedVault(data: data.env),
+    ),
   );
 }
 
