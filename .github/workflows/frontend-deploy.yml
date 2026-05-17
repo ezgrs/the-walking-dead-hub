@@ -32,7 +32,7 @@ jobs:
 
       - name: Create .env file
         run: |
-          echo "BACKEND_URL=${{ secrets.BACKEND_URL }}" > .env
+          echo "BACKEND_URL=${{ vars.BACKEND_URL }}" > .env
 
       - name: Install dependencies
         run: flutter pub get
