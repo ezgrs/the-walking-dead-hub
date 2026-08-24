@@ -54,5 +54,3 @@ flutter:
   - family: JollyLodger
     fonts:
       - asset: assets/fonts/JollyLodger-Regular.ttf
-  assets:
-    - .env
