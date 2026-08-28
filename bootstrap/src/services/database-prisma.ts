@@ -1,0 +1,237 @@
+import { Prisma, PrismaClient } from '../generated/prisma/client.js'
+import { Alias } from '../models/alias.js'
+import { EpisodePage } from '../models/episode-page.js'
+import { Database } from '../ports/database.js'
+
+type Args = {
+    prisma: PrismaClient
+}
+
+export class PrismaDatabase implements Database {
+    private readonly prisma: PrismaClient
+
+    constructor(args: Args) {
+        this.prisma = args.prisma
+    }
+
+    async dispose(): Promise<void> {
+        await this.prisma.$disconnect()
+    }
+
+    async getCurrentVersion(): Promise<number | null> {
+        const result = await this.prisma.bootstrapRun.aggregate({
+            _max: { version: true },
+        })
+        return result._max.version
+    }
+
+    async setCurrentVersion(version: number): Promise<void> {
+        await this.prisma.bootstrapRun.create({
+            data: { version: version },
+        })
+    }
+
+    async getAppearanceTypeAliases(): Promise<Alias[]> {
+        return await this.prisma.appearanceTypeAlias.findMany()
+    }
+
+    async getAppearanceFormTypeAliases(): Promise<Alias[]> {
+        return await this.prisma.appearanceFormTypeAlias.findMany()
+    }
+
+    async update(pages: EpisodePage[]): Promise<void> {
+        await this.prisma.$transaction(async (tx) => {
+            const charactersMapping: Map<string, string> = new Map()
+            for (const page of pages) {
+                // Upsert episodes
+                const episode = page.info
+                await tx.episode.upsert({
+                    where: {
+                        wikiHref: episode.wikiHref,
+                    },
+                    update: {
+                        name: episode.name,
+                        seasonNumber: episode.season,
+                        episodeNumber: episode.episode,
+                    },
+                    create: {
+                        wikiHref: episode.wikiHref,
+                        name: episode.name,
+                        seasonNumber: episode.season,
+                        episodeNumber: episode.episode,
+                    },
+                })
+
+                // Group entities
+                for (const milestone of page.milestones) {
+                    const currentCharacterName = milestone.characterName
+                    const existingCharacterName = charactersMapping.get(
+                        milestone.characterHref,
+                    )
+                    if (
+                        existingCharacterName != null &&
+                        existingCharacterName !== currentCharacterName
+                    ) {
+                        throw new Error(
+                            `character's name is already assigned to ` +
+                                `${existingCharacterName}, trying to assign ` +
+                                `to ${currentCharacterName} by ` +
+                                `${episode.wikiHref}`,
+                        )
+                    }
+                    charactersMapping.set(
+                        milestone.characterHref,
+                        currentCharacterName,
+                    )
+                }
+            }
+
+            // Upsert entities
+            for (const [
+                characterHref,
+                characterName,
+            ] of charactersMapping.entries()) {
+                await tx.entity.upsert({
+                    where: {
+                        wikiHref: characterHref,
+                    },
+                    update: {
+                        name: characterName,
+                    },
+                    create: {
+                        wikiHref: characterHref,
+                        name: characterName,
+                    },
+                })
+            }
+
+            // Upsert appearances and appearances forms
+            await this.updateAppearances(
+                tx,
+                pages.flatMap((page) =>
+                    page.milestones.map((milestone) => ({
+                        episodeHref: page.info.wikiHref,
+                        entityHref: milestone.characterHref,
+                        appearanceTypeId: milestone.appearanceTypeId,
+                        appearanceFormsTypeIds: milestone.appearanceFormTypeIds,
+                    })),
+                ),
+            )
+        })
+    }
+
+    private async updateAppearances(
+        tx: Prisma.TransactionClient,
+        datum: {
+            episodeHref: string
+            entityHref: string
+            appearanceTypeId: number
+            appearanceFormsTypeIds: number[]
+        }[],
+    ) {
+        // Create a temporary table with the raw input data
+        await tx.$executeRaw`
+            CREATE TEMP TABLE tmp_appearancesraw (
+                episodewikihref VARCHAR(127) NOT NULL,
+                entitywikihref VARCHAR(127) NOT NULL,
+                appearancetypeid INTEGER NOT NULL,
+                appearanceformtypeids INTEGER[] NOT NULL
+            ) ON COMMIT DROP
+        `
+        // Populate the temporary table
+        await tx.$executeRaw`
+            INSERT INTO tmp_appearancesraw (
+                episodewikihref,
+                entitywikihref,
+                appearancetypeid,
+                appearanceformtypeids
+            ) VALUES ${Prisma.join(
+                datum.map(
+                    (data) =>
+                        `(` +
+                        `${data.episodeHref}, ` +
+                        `${data.entityHref}, ` +
+                        `${data.appearanceTypeId}, ` +
+                        `${data.appearanceFormsTypeIds}` +
+                        `)`,
+                ),
+            )}
+        `
+        // Create another temporary table with normalized
+        // data such that episodewikihref -> episode.id
+        // and entitywikihref -> entity.id
+        await tx.$executeRaw`
+            CREATE TEMP TABLE tmp_appearances 
+            ON COMMIT DROP AS 
+            SELECT
+                episodes.id as episodeid,
+                entities.id as entityid,
+                tmp_appearancesraw.appearancetypeid,
+                tmp_appearancesraw.appearanceformtypeids
+            FROM tmp_appearancesraw
+            JOIN episodes ON episodes.wikihref = tmp_appearancesraw.episodewikihref
+            JOIN entities ON entities.wikihref = tmp_appearancesraw.entitywikihref
+        `
+        // Upsert all new values into `appearances`
+        await tx.$executeRaw`
+            INSERT INTO appearances (
+                episodeid,
+                entityid,
+                appearancetypeid,
+            )
+            SELECT 
+                episodeid,
+                entityid,
+                appearancetypeid
+            FROM tmp_appearances
+            ON CONFLICT (episodeid, entityid)
+            DO UPDATE SET appearancetypeid = EXCLUDED.appearancetypeid
+        `
+        // Delete outdated values from `appearances`
+        await tx.$executeRaw`
+            DELETE FROM appearances
+            WHERE NOT EXISTS (
+                SELECT 1 FROM tmp_appearances
+                WHERE tmp_appearances.episodeid = appearances.episodeid
+                AND tmp_appearances.entityid = appearances.entityid
+            )
+        `
+
+        // Create another temporary table with normalized
+        // data such that (episodeid, entityid) -> appearances.id
+        await tx.$executeRaw`
+            CREATE TEMP TABLE tmp_appearanceforms 
+            ON COMMIT DROP AS
+            SELECT
+                appearances.id,
+                tmp_appearances.appearanceformtypeids
+            FROM tmp_appearances
+            JOIN appearances
+                ON appearances.episodeid = tmp_appearances.episodeid
+                AND appearances.entityid = tmp_appearances.entityid
+        `
+        // Upsert all new values into `appearanceforms`
+        await tx.$executeRaw`
+            INSERT INTO appearanceforms (
+                appearanceid,
+                appearanceformtypeid
+            )
+            SELECT
+                tmp_appearanceforms.id,
+                t.id
+            FROM tmp_appearanceforms
+            CROSS JOIN LATERAL UNNEST(tmp_appearanceforms.appearanceformtypeids) AS t(id)
+            ON CONFLICT (appearanceid, appearanceformtypeid)
+            DO NOTHING
+        `
+        // Delete outdated values from `appearanceforms`
+        await tx.$executeRaw`
+            DELETE FROM appearanceforms
+            WHERE NOT EXISTS (
+                SELECT 1 FROM tmp_appearanceforms
+                WHERE tmp_appearanceforms.appearanceid = appearanceforms.appearanceid
+                AND appearanceforms.appearanceformtypeid = ANY(tmp_appearanceforms.appearanceformtypeids)
+            )
+        `
+    }
+}
