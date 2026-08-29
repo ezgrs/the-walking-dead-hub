@@ -185,13 +185,12 @@ export class PrismaDatabase implements Database {
                 appearanceformtypeids
             ) VALUES ${Prisma.join(
                 datum.map(
-                    (data) =>
-                        `(` +
-                        `${data.episodeHref}, ` +
-                        `${data.entityHref}, ` +
-                        `${data.appearanceTypeId}, ` +
-                        `${data.appearanceFormsTypeIds}` +
-                        `)`,
+                    (data) => Prisma.sql`(
+                    ${data.episodeHref},
+                    ${data.entityHref},
+                    ${data.appearanceTypeId},
+                    ${data.appearanceFormsTypeIds}
+                )`,
                 ),
             )}
         `
