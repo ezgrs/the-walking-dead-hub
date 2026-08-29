@@ -1,7 +1,6 @@
 import typing
 import sqlmodel
 
-
 if typing.TYPE_CHECKING:
     from twd_hub.infrastructure.db.models.appearance_form import (
         AppearanceFormModel,

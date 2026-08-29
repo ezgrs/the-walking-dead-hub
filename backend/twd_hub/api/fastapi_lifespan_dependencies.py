@@ -15,14 +15,21 @@ type LifespanDependency[T] = typing.Callable[
 class LifespanDependencyError(BaseException): ...
 
 
-class GlobalDependencyFactory:
-    _dependency: types.FunctionType
+class _Dependency[**P, T](typing.Protocol):
+    __module__: str
+    __name__: str
 
-    def __init__(self, dependency: types.FunctionType) -> None:
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T: ...
+
+
+class GlobalDependencyFactory[**P, T]:
+    _dependency: _Dependency[P, T]
+
+    def __init__(self, dependency: _Dependency[P, T]) -> None:
         self._dependency = dependency
 
     @property
-    def __function__(self) -> types.FunctionType:
+    def __function__(self) -> _Dependency[P, T]:
         return self._dependency  # pyright: ignore[reportReturnType]
 
     @property
@@ -55,7 +62,7 @@ class Lifespan:
     async def __call__(
         self,
         _: fastapi.FastAPI,
-    ) -> typing.AsyncIterator[typing.Mapping[str, typing.Any]]:
+    ) -> typing.AsyncGenerator[typing.Mapping[str, typing.Any]]:
         state: dict[str, typing.Any] = {}
 
         async with contextlib.AsyncExitStack() as exit_stack:
@@ -96,11 +103,13 @@ class Lifespan:
 
             yield state
 
-    def register(
+    def register[**P, T](
         self,
-        dependable: GlobalDependencyFactory,
+        dependable: GlobalDependencyFactory[P, T],
     ) -> None:
         dependency = dependable.__function__
+
+        context_manager: LifespanDependency[T]
         if inspect.isasyncgenfunction(dependency):
             context_manager = contextlib.asynccontextmanager(dependency)
         elif inspect.isgeneratorfunction(dependency):

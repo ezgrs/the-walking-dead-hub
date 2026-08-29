@@ -2,7 +2,9 @@ import sqlmodel
 
 
 class AppearanceFormTypeAliasModel(sqlmodel.SQLModel, table=True):
-    __tablename__ = "appearanceformtypealiases"  # pyright: ignore[reportAssignmentType]
+    __tablename__ = (
+        "appearanceformtypealiases"  # pyright: ignore[reportAssignmentType]
+    )
 
     id: int | None = sqlmodel.Field(
         sa_column=sqlmodel.Column(
