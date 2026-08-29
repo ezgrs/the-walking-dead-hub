@@ -33,6 +33,28 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  bootstrap:
+    profiles:
+      - bootstrap
+    build:
+      context: bootstrap
+      dockerfile: Dockerfile
+    restart: no
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USERNAME: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DATABASE: ${POSTGRES_DATABASE}
+
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+    depends_on:
+      - redis
+      - postgres
+      - backend
+
   backend:
     build:
       context: backend
