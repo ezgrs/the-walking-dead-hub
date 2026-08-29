@@ -17,19 +17,40 @@ export class CachedWiki implements Wiki {
         this.wiki = args.wiki
     }
 
-    async getPages(url: URL): Promise<EpisodePage[]> {
-        const cacheKey = `http:response:${createHash('sha256')
+    async getPages(url: URL): Promise<URL[]> {
+        const cacheKey = `wiki:summary:${createHash('sha256')
             .update(url.href)
             .digest('hex')}`
 
         const cachedValue = await this.cache.get(cacheKey)
-        let pages: EpisodePage[]
+        let urls: URL[]
         if (cachedValue == null) {
-            pages = await this.wiki.getPages(url)
-            await this.cache.set(cacheKey, JSON.stringify(pages))
+            urls = await this.wiki.getPages(url)
+            await this.cache.set(
+                cacheKey,
+                JSON.stringify(urls.map((url) => url.href)),
+            )
         } else {
-            pages = JSON.parse(cachedValue) as EpisodePage[]
+            urls = (JSON.parse(cachedValue) as string[]).map(
+                (href) => new URL(href),
+            )
         }
-        return pages
+        return urls
+    }
+
+    async getPage(url: URL): Promise<EpisodePage> {
+        const cacheKey = `wiki:episode:${createHash('sha256')
+            .update(url.href)
+            .digest('hex')}`
+
+        const cachedValue = await this.cache.get(cacheKey)
+        let page: EpisodePage
+        if (cachedValue == null) {
+            page = await this.wiki.getPage(url)
+            await this.cache.set(cacheKey, JSON.stringify(page))
+        } else {
+            page = JSON.parse(cachedValue) as EpisodePage
+        }
+        return page
     }
 }

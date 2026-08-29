@@ -219,7 +219,7 @@ export class PlaywrightWiki implements Wiki {
         await this.browser.close()
     }
 
-    async getPages(baseUrl: URL): Promise<EpisodePage[]> {
+    async getPages(baseUrl: URL): Promise<URL[]> {
         const hrefs: string[] = await using(
             await this.browser.newContext(),
             async (context) => {
@@ -230,33 +230,19 @@ export class PlaywrightWiki implements Wiki {
                 })
             },
         )
+        return hrefs.map((href) => new URL(href, baseUrl))
+    }
 
-        // Parse episodes pages
-        const queue = pLimit(5)
-        return await Promise.all(
-            hrefs.slice(0, 6).map((href) =>
-                queue(async () => {
-                    const url = new URL(href, baseUrl)
-                    return await using(
-                        await this.browser.newContext(),
-                        async (context) => {
-                            return await using(
-                                await context.newPage(),
-                                async (page) => {
-                                    await page.goto(url.href)
-                                    return await parseEpisode({
-                                        page,
-                                        appearanceTypeAliases:
-                                            this.appearanceTypeAliases,
-                                        appearanceFormTypeAliases:
-                                            this.appearanceFormTypeAliases,
-                                    })
-                                },
-                            )
-                        },
-                    )
-                }),
-            ),
-        )
+    async getPage(url: URL): Promise<EpisodePage> {
+        return await using(await this.browser.newContext(), async (context) => {
+            return await using(await context.newPage(), async (page) => {
+                await page.goto(url.href)
+                return await parseEpisode({
+                    page,
+                    appearanceTypeAliases: this.appearanceTypeAliases,
+                    appearanceFormTypeAliases: this.appearanceFormTypeAliases,
+                })
+            })
+        })
     }
 }

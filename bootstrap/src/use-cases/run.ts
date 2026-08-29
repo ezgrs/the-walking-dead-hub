@@ -1,3 +1,4 @@
+import pLimit from 'p-limit'
 import { Database } from '../ports/database.js'
 import { Wiki } from '../ports/wiki.js'
 import { Dependency } from '../utils/dependency.js'
@@ -30,10 +31,14 @@ export class RunUseCase {
 
         await this.wikiDependency.using(async (wiki) => {
             // Parse episodes to be upserted
-            const episodes = await wiki.getPages(args.baseUrl)
+            const urls = await wiki.getPages(args.baseUrl)
+            const queue = pLimit(5)
+            const pages = await Promise.all(
+                urls.map((url) => queue(() => wiki.getPage(url))),
+            )
 
-            // // Push changes to the database
-            // await this.database.update(episodes)
+            // Push changes to the database
+            await this.database.update(pages)
 
             // // Update script
             // await this.database.setCurrentVersion(args.scriptVersion)
