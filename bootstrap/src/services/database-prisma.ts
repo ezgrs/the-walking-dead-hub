@@ -215,7 +215,7 @@ export class PrismaDatabase implements Database {
             INSERT INTO appearances (
                 episodeid,
                 entityid,
-                appearancetypeid,
+                appearancetypeid
             )
             SELECT 
                 episodeid,
