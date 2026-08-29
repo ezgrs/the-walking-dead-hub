@@ -1,11 +1,71 @@
 import { Prisma, PrismaClient } from '../generated/prisma/client.js'
 import { Alias } from '../models/alias.js'
+import { CharacterMilestone } from '../models/character-milestone.js'
 import { EpisodePage } from '../models/episode-page.js'
-import { Episode } from '../models/episode.js'
 import { Database } from '../ports/database.js'
 
 type Args = {
     prisma: PrismaClient
+}
+
+// Finds the longest candidate whose normalized form appears in the normalized
+// base string. Normalization is case-insensitive and ignores all characters
+// except A-Z. Returns the matching candidate with each word's first letter
+// capitalized, or undefined if none match.
+function bestAlias(base: string, candidates: string[]) {
+    const b = base.replace(/[^a-z]/gi, '').toLowerCase()
+    return candidates
+        .filter((c) => b.includes(c.replace(/[^a-z]/gi, '').toLowerCase()))
+        .sort((a, z) => z.length - a.length)[0]
+        ?.replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function summarizeCharacters(
+    milestones: CharacterMilestone[],
+): Map<string, string> {
+    const charactersAliases: Map<string, Set<string>> = new Map()
+
+    for (const milestone of milestones) {
+        const href = milestone.characterHref
+        const alias = milestone.characterName
+
+        // Given a canonical HREF of a character,
+        // tracks how many aliases do they have
+        const _aliases = charactersAliases.get(href)
+        let aliases: Set<string>
+        if (_aliases == null) {
+            aliases = new Set()
+        } else {
+            aliases = new Set(_aliases)
+        }
+
+        // Includes the current alias in that
+        aliases.add(alias)
+
+        charactersAliases.set(href, aliases)
+    }
+
+    const characters: Map<string, string> = new Map()
+    for (const [key, value] of charactersAliases.entries()) {
+        const aliases = Array.from(value)
+        if (aliases.length > 1) {
+            // This was the best way possible to address some characters having
+            // multiple aliases by multiple reasons, such as married names
+            // (Maggie Greene/Maggie Rhee, Michonne Hawthorne/Michonne Grimes,
+            // Maxxine Mercer/Maxxine Porter), naming inconsistency (Saviors/
+            // the Saviors, Henry/Henry Sutton, Heaps/the Heaps, Reapers/the
+            // Reapers, the Warden/The Warden) or even typos (Terminus/Termimus).
+            // So we compare them against the canonical HREF of the character.
+            const mainAlias = bestAlias(key, aliases)
+            if (mainAlias == null) {
+                throw new Error(`can't decide main alias for ${aliases}`)
+            }
+            characters.set(key, mainAlias)
+        } else {
+            characters.set(key, aliases[0])
+        }
+    }
+    return characters
 }
 
 export class PrismaDatabase implements Database {
@@ -41,35 +101,10 @@ export class PrismaDatabase implements Database {
     }
 
     async update(pages: EpisodePage[]): Promise<void> {
-        const episodes: Episode[] = []
-        const charactersMapping: Map<string, string> = new Map()
-
-        for (const page of pages) {
-            episodes.push(page.info)
-
-            // Group entities
-            for (const milestone of page.milestones) {
-                const currentCharacterName = milestone.characterName
-                const existingCharacterName = charactersMapping.get(
-                    milestone.characterHref,
-                )
-                if (
-                    existingCharacterName != null &&
-                    existingCharacterName !== currentCharacterName
-                ) {
-                    throw new Error(
-                        `character's name is already assigned to ` +
-                            `${existingCharacterName}, trying to assign ` +
-                            `to ${currentCharacterName} by ` +
-                            `${page.info.wikiHref}`,
-                    )
-                }
-                charactersMapping.set(
-                    milestone.characterHref,
-                    currentCharacterName,
-                )
-            }
-        }
+        const episodes = pages.map((page) => page.info)
+        const characters = summarizeCharacters(
+            pages.flatMap((page) => page.milestones),
+        )
 
         await this.prisma.$transaction(async (tx) => {
             // Upsert episodes
@@ -93,10 +128,7 @@ export class PrismaDatabase implements Database {
             }
 
             // Upsert entities
-            for (const [
-                characterHref,
-                characterName,
-            ] of charactersMapping.entries()) {
+            for (const [characterHref, characterName] of characters.entries()) {
                 await tx.entity.upsert({
                     where: {
                         wikiHref: characterHref,
