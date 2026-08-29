@@ -241,7 +241,7 @@ export class PrismaDatabase implements Database {
             CREATE TEMP TABLE tmp_appearanceforms 
             ON COMMIT DROP AS
             SELECT
-                appearances.id,
+                appearances.id as appearanceid,
                 tmp_appearances.appearanceformtypeids
             FROM tmp_appearances
             JOIN appearances
@@ -255,7 +255,7 @@ export class PrismaDatabase implements Database {
                 appearanceformtypeid
             )
             SELECT
-                tmp_appearanceforms.id,
+                tmp_appearanceforms.appearanceid,
                 t.id
             FROM tmp_appearanceforms
             CROSS JOIN LATERAL UNNEST(tmp_appearanceforms.appearanceformtypeids) AS t(id)
