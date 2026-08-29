@@ -40,8 +40,8 @@ export class RunUseCase {
             // Push changes to the database
             await this.database.update(pages)
 
-            // // Update script
-            // await this.database.setCurrentVersion(args.scriptVersion)
+            // Update script
+            await this.database.setCurrentVersion(args.scriptVersion)
         })
     }
 }
