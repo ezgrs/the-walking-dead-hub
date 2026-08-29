@@ -1,6 +1,7 @@
 import { Prisma, PrismaClient } from '../generated/prisma/client.js'
 import { Alias } from '../models/alias.js'
 import { EpisodePage } from '../models/episode-page.js'
+import { Episode } from '../models/episode.js'
 import { Database } from '../ports/database.js'
 
 type Args = {
@@ -40,11 +41,39 @@ export class PrismaDatabase implements Database {
     }
 
     async update(pages: EpisodePage[]): Promise<void> {
+        const episodes: Episode[] = []
+        const charactersMapping: Map<string, string> = new Map()
+
+        for (const page of pages) {
+            episodes.push(page.info)
+
+            // Group entities
+            for (const milestone of page.milestones) {
+                const currentCharacterName = milestone.characterName
+                const existingCharacterName = charactersMapping.get(
+                    milestone.characterHref,
+                )
+                if (
+                    existingCharacterName != null &&
+                    existingCharacterName !== currentCharacterName
+                ) {
+                    throw new Error(
+                        `character's name is already assigned to ` +
+                            `${existingCharacterName}, trying to assign ` +
+                            `to ${currentCharacterName} by ` +
+                            `${page.info.wikiHref}`,
+                    )
+                }
+                charactersMapping.set(
+                    milestone.characterHref,
+                    currentCharacterName,
+                )
+            }
+        }
+
         await this.prisma.$transaction(async (tx) => {
-            const charactersMapping: Map<string, string> = new Map()
-            for (const page of pages) {
-                // Upsert episodes
-                const episode = page.info
+            // Upsert episodes
+            for (const episode of episodes) {
                 await tx.episode.upsert({
                     where: {
                         wikiHref: episode.wikiHref,
@@ -61,29 +90,6 @@ export class PrismaDatabase implements Database {
                         episodeNumber: episode.episode,
                     },
                 })
-
-                // Group entities
-                for (const milestone of page.milestones) {
-                    const currentCharacterName = milestone.characterName
-                    const existingCharacterName = charactersMapping.get(
-                        milestone.characterHref,
-                    )
-                    if (
-                        existingCharacterName != null &&
-                        existingCharacterName !== currentCharacterName
-                    ) {
-                        throw new Error(
-                            `character's name is already assigned to ` +
-                                `${existingCharacterName}, trying to assign ` +
-                                `to ${currentCharacterName} by ` +
-                                `${episode.wikiHref}`,
-                        )
-                    }
-                    charactersMapping.set(
-                        milestone.characterHref,
-                        currentCharacterName,
-                    )
-                }
             }
 
             // Upsert entities
