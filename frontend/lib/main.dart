@@ -37,6 +37,19 @@ class AppSpacing {
   const AppSpacing._();
 }
 
+class AppColors {
+  static const Color background = Color(0xFFF6F4EF);
+  static const Color surface = Color(0xFFFFFFFF);
+  static const Color surfaceMuted = Color(0xFFECE8DD);
+  static const Color ink = Color(0xFF1B1D18);
+  static const Color muted = Color(0xFF686B60);
+  static const Color accent = Color(0xFF5D6B46);
+  static const Color accentSoft = Color(0xFFE2E8D4);
+  static const Color border = Color(0xFFD8D2C4);
+
+  const AppColors._();
+}
+
 class LocaleController extends ValueNotifier<Locale> {
   LocaleController(super.value);
 }
@@ -96,15 +109,115 @@ class MainApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
             useMaterial3: true,
-            inputDecorationTheme: const InputDecorationTheme(
-              border: OutlineInputBorder(),
+            scaffoldBackgroundColor: AppColors.background,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: AppColors.accent,
+              brightness: Brightness.light,
+              surface: AppColors.surface,
             ),
-            fontFamily: "JollyLodger",
+            cardTheme: CardThemeData(
+              color: AppColors.surface,
+              elevation: 0,
+              margin: EdgeInsets.zero,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+                side: const BorderSide(color: AppColors.border),
+              ),
+            ),
+            textTheme: const TextTheme(
+              displayLarge: TextStyle(
+                fontSize: 48,
+                height: 1.02,
+                fontWeight: FontWeight.w700,
+                color: AppColors.ink,
+              ),
+              displayMedium: TextStyle(
+                fontSize: 36,
+                height: 1.08,
+                fontWeight: FontWeight.w700,
+                color: AppColors.ink,
+              ),
+              displaySmall: TextStyle(
+                fontSize: 24,
+                height: 1.16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.ink,
+              ),
+              headlineLarge: TextStyle(
+                fontSize: 22,
+                height: 1.2,
+                fontWeight: FontWeight.w700,
+                color: AppColors.ink,
+              ),
+              headlineMedium: TextStyle(
+                fontSize: 18,
+                height: 1.35,
+                fontWeight: FontWeight.w600,
+                color: AppColors.ink,
+              ),
+              headlineSmall: TextStyle(
+                fontSize: 16,
+                height: 1.35,
+                fontWeight: FontWeight.w700,
+                color: AppColors.ink,
+              ),
+              titleLarge: TextStyle(
+                fontSize: 16,
+                height: 1.45,
+                fontWeight: FontWeight.w600,
+                color: AppColors.ink,
+              ),
+              titleMedium: TextStyle(
+                fontSize: 14,
+                height: 1.45,
+                fontWeight: FontWeight.w500,
+                color: AppColors.muted,
+              ),
+              bodyLarge: TextStyle(
+                fontSize: 16,
+                height: 1.55,
+                fontWeight: FontWeight.w400,
+                color: AppColors.ink,
+              ),
+              bodyMedium: TextStyle(
+                fontSize: 14,
+                height: 1.5,
+                fontWeight: FontWeight.w400,
+                color: AppColors.muted,
+              ),
+              labelLarge: TextStyle(
+                fontSize: 14,
+                height: 1.2,
+                fontWeight: FontWeight.w700,
+                color: AppColors.ink,
+              ),
+            ),
+            dividerTheme: const DividerThemeData(
+              color: AppColors.border,
+              thickness: 1,
+              space: AppSpacing.xl,
+            ),
+            inputDecorationTheme: const InputDecorationTheme(
+              filled: true,
+              fillColor: AppColors.surface,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+                borderSide: BorderSide(color: AppColors.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+                borderSide: BorderSide(color: AppColors.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+                borderSide: BorderSide(color: AppColors.accent, width: 1.5),
+              ),
+            ),
             scrollbarTheme: ScrollbarThemeData(
-              thickness: WidgetStateProperty.all(10),
-              radius: Radius.zero,
-              thumbColor: WidgetStateProperty.all(Colors.grey),
-              thumbVisibility: WidgetStateProperty.all(true),
+              thickness: WidgetStateProperty.all(6),
+              radius: const Radius.circular(999),
+              thumbColor: WidgetStateProperty.all(AppColors.border),
+              thumbVisibility: WidgetStateProperty.all(false),
             ),
           ),
           localizationsDelegates: [

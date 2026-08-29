@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:responsive_framework/responsive_framework.dart' as rf;
 
@@ -11,9 +12,23 @@ class HeaderWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool compact = rf.ResponsiveBreakpoints.of(
+      context,
+    ).smallerThan(kDeviceDesktop);
     final Widget logoWidget = SvgPicture.network(
-      "https://upload.wikimedia.org/wikipedia/commons/e/ef/The_Walking_Dead_2010_logo.svg",
-      height: 100,
+      'https://upload.wikimedia.org/wikipedia/commons/e/ef/The_Walking_Dead_2010_logo.svg',
+      height: compact ? 54 : 64,
+    );
+    final Widget homeLink = InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: () => GoRouter.of(context).go('/'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.xs,
+        ),
+        child: logoWidget,
+      ),
     );
     final Widget localizationWidget = Consumer<LocaleController>(
       builder: (context, localeController, _) {
@@ -22,44 +37,43 @@ class HeaderWidget extends StatelessWidget {
         final Locale nextLocale =
             AppLocalizations.supportedLocales[(index + 1) %
                 AppLocalizations.supportedLocales.length];
-        final String emojiText = switch (nextLocale.languageCode) {
-          "en" => "🇺🇸",
-          "pt" => "🇧🇷",
-          _ => "",
-        };
-        return TextButton.icon(
+
+        return OutlinedButton.icon(
           onPressed: () => localeController.value = nextLocale,
-          label: Text("$emojiText  ${nextLocale.languageCode.toUpperCase()}"),
-          style: TextButton.styleFrom(
-            backgroundColor: Colors.black,
-            foregroundColor: Colors.white,
+          icon: const Icon(Icons.language_rounded, size: 18),
+          label: Text(nextLocale.languageCode.toUpperCase()),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.ink,
+            side: const BorderSide(color: AppColors.border),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
             padding: EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
+              horizontal: compact ? AppSpacing.md : AppSpacing.lg,
               vertical: AppSpacing.sm,
             ),
-            textStyle: Theme.of(context).textTheme.displaySmall,
+            textStyle: Theme.of(context).textTheme.labelLarge,
           ),
         );
       },
     );
-    final Widget child;
-    if (rf.ResponsiveBreakpoints.of(context).smallerThan(kDeviceDesktop)) {
-      child = Column(
-        mainAxisSize: MainAxisSize.min,
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        compact ? AppSpacing.md : AppSpacing.xl,
+        AppSpacing.md,
+        compact ? AppSpacing.md : AppSpacing.xl,
+        AppSpacing.sm,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Center(child: logoWidget),
-          const SizedBox(height: AppSpacing.md),
-          Align(alignment: Alignment.centerRight, child: localizationWidget),
+          Expanded(
+            child: Align(alignment: Alignment.centerLeft, child: homeLink),
+          ),
+          localizationWidget,
         ],
-      );
-    } else {
-      child = Stack(
-        children: [
-          Center(child: logoWidget),
-          Align(alignment: Alignment.centerRight, child: localizationWidget),
-        ],
-      );
-    }
-    return Padding(padding: const EdgeInsets.all(AppSpacing.lg), child: child);
+      ),
+    );
   }
 }
