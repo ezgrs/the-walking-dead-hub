@@ -1,4 +1,6 @@
 import typing
+import http.client
+
 import fastapi
 import pydantic
 import sqlmodel
@@ -46,79 +48,93 @@ async def read_indices(
     ]
 
 
-class EntityDataOut(pydantic.BaseModel):
+@router.get("")
+async def read_all(
+    session: twd_hub.api.dependencies.database_session.Dependency,
+    index: typing.Annotated[
+        int, fastapi.Query(ge=1)
+    ] = 1,
+) -> list[EpisodeModel]:
+    return [
+        *await session.exec(
+            sqlmodel.select(EpisodeModel)
+            .where(sqlmodel.col(EpisodeModel.season_number) == index)
+            .order_by(sqlmodel.col(EpisodeModel.episode_number))
+        )
+    ]
+
+
+class SeasonEpisodeAppearanceDto(pydantic.BaseModel):
     entity: EntityModel
     appearance_type_label: str
     appearance_form_type_label: str | None
 
 
-class DataOut(pydantic.BaseModel):
+class SeasonEpisodeDto(pydantic.BaseModel):
     episode: EpisodeModel
-    appearances: list[EntityDataOut]
+    appearances: list[SeasonEpisodeAppearanceDto]
 
 
-@router.get("/{season_number}")
+@router.get("/{season_number}/{episode_number}")
 async def read_data(
     session: twd_hub.api.dependencies.database_session.Dependency,
     season_number: typing.Annotated[int, fastapi.Path()],
-) -> list[DataOut]:
-    episodes_mapping: dict[int, EpisodeModel] = {}
-    appearances_mapping: dict[int, list[EntityDataOut]] = {}
-    for (
-        episode,
-        entity,
-        appearance_type_label,
-        appearance_form_type_label,
-    ) in await session.exec(
-        sqlmodel.select(
-            EpisodeModel,
-            EntityModel,
-            AppearanceTypeModel.name,
-            AppearanceFormTypeModel.name,
+    episode_number: typing.Annotated[int, fastapi.Path()],
+) -> SeasonEpisodeDto:
+    episode_model = (
+        await session.exec(
+            sqlmodel.select(EpisodeModel)
+            .where(EpisodeModel.season_number == season_number)
+            .where(EpisodeModel.episode_number == episode_number)
+            .limit(1)
         )
-        .join(
-            AppearanceModel,
-            sqlmodel.col(AppearanceModel.episode_id) == EpisodeModel.id,
-        )
-        .join(
-            EntityModel,
-            sqlmodel.col(EntityModel.id) == AppearanceModel.entity_id,
-        )
-        .join(
-            AppearanceTypeModel,
-            sqlmodel.col(AppearanceTypeModel.id) == AppearanceModel.type_id,
-        )
-        .outerjoin(
-            AppearanceFormModel,
-            sqlmodel.col(AppearanceFormModel.appearance_id)
-            == AppearanceModel.id,
-        )
-        .outerjoin(
-            AppearanceFormTypeModel,
-            sqlmodel.col(AppearanceFormTypeModel.id)
-            == AppearanceFormModel.type_id,
-        )
-        .where(sqlmodel.col(EpisodeModel.season_number) == season_number)
-        .order_by(
-            sqlmodel.col(EpisodeModel.season_number),
-            sqlmodel.col(EpisodeModel.episode_number),
-            sqlmodel.col(EntityModel.id),
-        )
-    ):
-        episodes_mapping.setdefault(episode.episode_number, episode)
-        appearances_mapping.setdefault(episode.episode_number, []).append(
-            EntityDataOut(
+    ).one_or_none()
+    if episode_model is None:
+        raise fastapi.HTTPException(status_code=http.client.NOT_FOUND)
+    return SeasonEpisodeDto(
+        episode=episode_model,
+        appearances=[
+            SeasonEpisodeAppearanceDto(
                 entity=entity,
                 appearance_type_label=appearance_type_label,
                 appearance_form_type_label=appearance_form_type_label,
             )
-        )
-    return [
-        DataOut(
-            episode=episode,
-            appearances=appearances_mapping.get(episode_number, []),
-        )
-        for episode_number, episode in sorted(
-            episodes_mapping.items(), key=lambda i: i[0]
-        )
-    ]
+            for (
+                entity,
+                appearance_type_label,
+                appearance_form_type_label,
+            ) in await session.exec(
+                sqlmodel.select(
+                    EntityModel,
+                    AppearanceTypeModel.name,
+                    AppearanceFormTypeModel.name,
+                )
+                .join(
+                    AppearanceModel,
+                    sqlmodel.col(AppearanceModel.entity_id) == EntityModel.id,
+                )
+                .join(
+                    EpisodeModel,
+                    sqlmodel.col(EpisodeModel.id) == AppearanceModel.episode_id,
+                )
+                .join(
+                    AppearanceTypeModel,
+                    sqlmodel.col(AppearanceTypeModel.id)
+                    == AppearanceModel.type_id,
+                )
+                .outerjoin(
+                    AppearanceFormModel,
+                    sqlmodel.col(AppearanceFormModel.appearance_id)
+                    == AppearanceModel.id,
+                )
+                .outerjoin(
+                    AppearanceFormTypeModel,
+                    sqlmodel.col(AppearanceFormTypeModel.id)
+                    == AppearanceFormModel.type_id,
+                )
+                .where(sqlmodel.col(EpisodeModel.season_number) == season_number)
+                .where(sqlmodel.col(EpisodeModel.episode_number) == episode_number)
+            )
+        ],
+    )
+    
