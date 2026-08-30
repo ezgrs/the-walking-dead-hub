@@ -556,13 +556,20 @@ class _EntityDetailsBody extends StatelessWidget {
                 tabs: [Tab(text: l10n.entitiesAppearanceMapTitle)],
               ),
               const SizedBox(height: AppSpacing.md),
-              _AppearanceLegend(showAppearanceRange: appearanceRange.isValid),
-              const SizedBox(height: AppSpacing.sm),
               Align(
                 alignment: Alignment.centerRight,
-                child: _ShowAllEpisodesToggle(
-                  value: showAllEpisodes,
-                  onChanged: onShowAllEpisodesChanged,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _AppearanceLegendButton(
+                      showAppearanceRange: appearanceRange.isValid,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    _ShowAllEpisodesToggle(
+                      value: showAllEpisodes,
+                      onChanged: onShowAllEpisodesChanged,
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -574,6 +581,44 @@ class _EntityDetailsBody extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _AppearanceLegendButton extends StatelessWidget {
+  final bool showAppearanceRange;
+
+  const _AppearanceLegendButton({required this.showAppearanceRange});
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+
+    return Tooltip(
+      message: l10n.entitiesAppearanceLegendTooltip,
+      child: IconButton(
+        onPressed: () {
+          showDialog<void>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(l10n.entitiesAppearanceLegendTitle),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 360),
+                child: _AppearanceLegend(
+                  showAppearanceRange: showAppearanceRange,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(l10n.entitiesCloseDialogLabel),
+                ),
+              ],
+            ),
+          );
+        },
+        icon: const Icon(Icons.info_outline_rounded),
       ),
     );
   }
