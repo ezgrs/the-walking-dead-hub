@@ -123,6 +123,8 @@
   "seasonsAppearancesTitle": "Appearances",
   "seasonsAppearancesMetricLabel": "Appearances",
   "seasonsAppearanceFormsMetricLabel": "Forms",
+  "seasonsFirstAppearancesMetricLabel": "Gains",
+  "seasonsLastAppearancesMetricLabel": "Losses",
   "seasonsNoAppearancesTitle": "No appearances",
   "seasonsNoAppearancesMessage": "There are no appearances registered for this episode yet."
 }

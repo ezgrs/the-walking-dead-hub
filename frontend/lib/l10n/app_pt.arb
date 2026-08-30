@@ -123,6 +123,8 @@
   "seasonsAppearancesTitle": "Aparições",
   "seasonsAppearancesMetricLabel": "Aparições",
   "seasonsAppearanceFormsMetricLabel": "Formas",
+  "seasonsFirstAppearancesMetricLabel": "Altas",
+  "seasonsLastAppearancesMetricLabel": "Baixas",
   "seasonsNoAppearancesTitle": "Sem aparições",
   "seasonsNoAppearancesMessage": "Ainda não há aparições cadastradas para este episódio."
 }
