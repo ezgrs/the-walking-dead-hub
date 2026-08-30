@@ -28,6 +28,20 @@ const Map<int, int> _episodeCountsBySeason = {
   11: 24,
 };
 
+const List<String> _knownAppearanceForms = [
+  'alive',
+  'corpse',
+  'zombified',
+  'voiceonly',
+  'physically',
+  'videotape',
+  'flashback',
+  'photograph',
+  'hallucination',
+  'dream',
+  'ultrasound',
+];
+
 class EntitiesScreen extends StatelessWidget {
   final EntitiesBloc bloc;
 
@@ -113,6 +127,7 @@ class EntitiesScreen extends StatelessWidget {
       ),
       EntitySelectedInitial(:final stats) => _EntityDetails(
         stats: stats,
+        entities: state.entities,
         compact: compact,
       ),
     };
@@ -429,9 +444,14 @@ class _EntityCard extends StatelessWidget {
 
 class _EntityDetails extends StatefulWidget {
   final EntityOut stats;
+  final List<Entity> entities;
   final bool compact;
 
-  const _EntityDetails({required this.stats, required this.compact});
+  const _EntityDetails({
+    required this.stats,
+    required this.entities,
+    required this.compact,
+  });
 
   @override
   State<_EntityDetails> createState() => _EntityDetailsState();
@@ -500,6 +520,8 @@ class _EntityDetailsState extends State<_EntityDetails> {
                 ? SizedBox(
                     height: 560,
                     child: _EntityDetailsBody(
+                      entity: widget.stats.entity,
+                      entities: widget.entities,
                       episodes: widget.stats.episodes,
                       showAllEpisodes: _showAllEpisodes,
                       onShowAllEpisodesChanged: _setShowAllEpisodes,
@@ -507,6 +529,8 @@ class _EntityDetailsState extends State<_EntityDetails> {
                   )
                 : Expanded(
                     child: _EntityDetailsBody(
+                      entity: widget.stats.entity,
+                      entities: widget.entities,
                       episodes: widget.stats.episodes,
                       showAllEpisodes: _showAllEpisodes,
                       onShowAllEpisodesChanged: _setShowAllEpisodes,
@@ -524,11 +548,15 @@ class _EntityDetailsState extends State<_EntityDetails> {
 }
 
 class _EntityDetailsBody extends StatelessWidget {
+  final Entity entity;
+  final List<Entity> entities;
   final List<EpisodeOut> episodes;
   final bool showAllEpisodes;
   final ValueChanged<bool?> onShowAllEpisodesChanged;
 
   const _EntityDetailsBody({
+    required this.entity,
+    required this.entities,
     required this.episodes,
     required this.showAllEpisodes,
     required this.onShowAllEpisodesChanged,
@@ -571,6 +599,8 @@ class _EntityDetailsBody extends StatelessWidget {
                   primaryOccurrenceSlots: primaryOccurrenceSlots,
                 ),
                 _TrophiesTab(
+                  entity: entity,
+                  entities: entities,
                   episodes: episodes,
                   primaryOccurrenceSlots: primaryOccurrenceSlots,
                 ),
@@ -848,18 +878,23 @@ class _LegendItem extends StatelessWidget {
 }
 
 class _TrophiesTab extends StatelessWidget {
+  final Entity entity;
+  final List<Entity> entities;
   final List<EpisodeOut> episodes;
   final _PrimaryOccurrenceSlots primaryOccurrenceSlots;
 
   const _TrophiesTab({
+    required this.entity,
+    required this.entities,
     required this.episodes,
     required this.primaryOccurrenceSlots,
   });
 
   @override
   Widget build(BuildContext context) {
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
     final _TrophyContext trophyContext = _TrophyContext(
+      entity: entity,
+      entities: entities,
       episodes: episodes,
       primaryOccurrenceSlots: primaryOccurrenceSlots,
     );
@@ -1513,17 +1548,26 @@ enum _TrophyTier {
 
 enum _TrophyId {
   singleEpisode,
+  sharedExactName,
   onlyZombified,
+  onlyCorpse,
   onlyPhotograph,
   onlyFlashback,
+  voiceIntroBeforePrimary,
   hasUltrasound,
   persistedOneSeason,
   hasDream,
   hasHallucination,
+  introducedAtSeasonPremiere,
+  endedAtSeasonFinale,
+  consecutivePrimaryJourney,
+  postJourneyFlashback,
+  postJourneyZombified,
   persistedAllSeasons,
   persistedEveryEpisode,
   appearedInPilot,
   appearedInFinale,
+  allAppearanceForms,
 }
 
 class _TrophyDefinition {
@@ -1544,6 +1588,11 @@ class _TrophyDefinition {
       icon: Icons.looks_one_rounded,
     ),
     _TrophyDefinition(
+      id: _TrophyId.sharedExactName,
+      tier: _TrophyTier.bronze,
+      icon: Icons.badge_rounded,
+    ),
+    _TrophyDefinition(
       id: _TrophyId.onlyFlashback,
       tier: _TrophyTier.bronze,
       icon: Icons.history_rounded,
@@ -1552,6 +1601,11 @@ class _TrophyDefinition {
       id: _TrophyId.onlyPhotograph,
       tier: _TrophyTier.bronze,
       icon: Icons.photo_camera_rounded,
+    ),
+    _TrophyDefinition(
+      id: _TrophyId.onlyCorpse,
+      tier: _TrophyTier.silver,
+      icon: Icons.block_rounded,
     ),
     _TrophyDefinition(
       id: _TrophyId.hasDream,
@@ -1579,6 +1633,16 @@ class _TrophyDefinition {
       icon: Icons.flag_circle_rounded,
     ),
     _TrophyDefinition(
+      id: _TrophyId.voiceIntroBeforePrimary,
+      tier: _TrophyTier.silver,
+      icon: Icons.record_voice_over_rounded,
+    ),
+    _TrophyDefinition(
+      id: _TrophyId.introducedAtSeasonPremiere,
+      tier: _TrophyTier.silver,
+      icon: Icons.first_page_rounded,
+    ),
+    _TrophyDefinition(
       id: _TrophyId.persistedOneSeason,
       tier: _TrophyTier.gold,
       icon: Icons.calendar_view_month_rounded,
@@ -1587,6 +1651,26 @@ class _TrophyDefinition {
       id: _TrophyId.appearedInFinale,
       tier: _TrophyTier.gold,
       icon: Icons.outlined_flag_rounded,
+    ),
+    _TrophyDefinition(
+      id: _TrophyId.endedAtSeasonFinale,
+      tier: _TrophyTier.gold,
+      icon: Icons.sports_score_rounded,
+    ),
+    _TrophyDefinition(
+      id: _TrophyId.consecutivePrimaryJourney,
+      tier: _TrophyTier.gold,
+      icon: Icons.skip_next_rounded,
+    ),
+    _TrophyDefinition(
+      id: _TrophyId.postJourneyFlashback,
+      tier: _TrophyTier.gold,
+      icon: Icons.replay_rounded,
+    ),
+    _TrophyDefinition(
+      id: _TrophyId.postJourneyZombified,
+      tier: _TrophyTier.gold,
+      icon: Icons.sync_rounded,
     ),
     _TrophyDefinition(
       id: _TrophyId.persistedAllSeasons,
@@ -1598,18 +1682,36 @@ class _TrophyDefinition {
       tier: _TrophyTier.legendary,
       icon: Icons.all_inclusive_rounded,
     ),
+    _TrophyDefinition(
+      id: _TrophyId.allAppearanceForms,
+      tier: _TrophyTier.legendary,
+      icon: Icons.auto_awesome_rounded,
+    ),
   ];
 
   bool isUnlocked(_TrophyContext context) {
     return switch (id) {
       _TrophyId.singleEpisode => context.uniqueAppearanceEpisodeCount == 1,
+      _TrophyId.sharedExactName => context.hasSharedExactName,
       _TrophyId.onlyZombified => context.onlyAppearedAs('zombified'),
+      _TrophyId.onlyCorpse => context.onlyAppearedAs('corpse'),
       _TrophyId.onlyPhotograph => context.onlyAppearedAs('photograph'),
       _TrophyId.onlyFlashback => context.onlyAppearedAs('flashback'),
+      _TrophyId.voiceIntroBeforePrimary =>
+        context.introducedByVoiceBeforePrimary,
       _TrophyId.hasUltrasound => context.hasAppearanceForm('ultrasound'),
       _TrophyId.persistedOneSeason => context.persistedFullSeason,
       _TrophyId.hasDream => context.hasAppearanceForm('dream'),
       _TrophyId.hasHallucination => context.hasAppearanceForm('hallucination'),
+      _TrophyId.introducedAtSeasonPremiere =>
+        context.primaryStartedAtSeasonPremiere,
+      _TrophyId.endedAtSeasonFinale => context.primaryEndedAtSeasonFinale,
+      _TrophyId.consecutivePrimaryJourney =>
+        context.consecutivePrimaryJourney,
+      _TrophyId.postJourneyFlashback =>
+        context.hasPostPrimaryAppearanceForm('flashback'),
+      _TrophyId.postJourneyZombified =>
+        context.hasPostPrimaryAppearanceForm('zombified'),
       _TrophyId.persistedAllSeasons => context.persistedAllSeasons,
       _TrophyId.persistedEveryEpisode => context.persistedEveryEpisode,
       _TrophyId.appearedInPilot => context.hasAppearanceAt(1, 1),
@@ -1617,39 +1719,61 @@ class _TrophyDefinition {
         _availableSeasons.last,
         _episodeCountsBySeason[_availableSeasons.last]!,
       ),
+      _TrophyId.allAppearanceForms => context.hasAllKnownAppearanceForms,
     };
   }
 
   String title(AppLocalizations l10n) {
     return switch (id) {
       _TrophyId.singleEpisode => l10n.entitiesTrophySingleEpisodeTitle,
+      _TrophyId.sharedExactName => l10n.entitiesTrophySharedExactNameTitle,
       _TrophyId.onlyZombified => l10n.entitiesTrophyOnlyZombifiedTitle,
+      _TrophyId.onlyCorpse => l10n.entitiesTrophyOnlyCorpseTitle,
       _TrophyId.onlyPhotograph => l10n.entitiesTrophyOnlyPhotographTitle,
       _TrophyId.onlyFlashback => l10n.entitiesTrophyOnlyFlashbackTitle,
+      _TrophyId.voiceIntroBeforePrimary =>
+        l10n.entitiesTrophyVoiceIntroBeforePrimaryTitle,
       _TrophyId.hasUltrasound => l10n.entitiesTrophyHasUltrasoundTitle,
       _TrophyId.persistedOneSeason =>
         l10n.entitiesTrophyPersistedOneSeasonTitle,
       _TrophyId.hasDream => l10n.entitiesTrophyHasDreamTitle,
       _TrophyId.hasHallucination =>
         l10n.entitiesTrophyHasHallucinationTitle,
+      _TrophyId.introducedAtSeasonPremiere =>
+        l10n.entitiesTrophyIntroducedAtSeasonPremiereTitle,
+      _TrophyId.endedAtSeasonFinale =>
+        l10n.entitiesTrophyEndedAtSeasonFinaleTitle,
+      _TrophyId.consecutivePrimaryJourney =>
+        l10n.entitiesTrophyConsecutivePrimaryJourneyTitle,
+      _TrophyId.postJourneyFlashback =>
+        l10n.entitiesTrophyPostJourneyFlashbackTitle,
+      _TrophyId.postJourneyZombified =>
+        l10n.entitiesTrophyPostJourneyZombifiedTitle,
       _TrophyId.persistedAllSeasons =>
         l10n.entitiesTrophyPersistedAllSeasonsTitle,
       _TrophyId.persistedEveryEpisode =>
         l10n.entitiesTrophyPersistedEveryEpisodeTitle,
       _TrophyId.appearedInPilot => l10n.entitiesTrophyAppearedInPilotTitle,
       _TrophyId.appearedInFinale => l10n.entitiesTrophyAppearedInFinaleTitle,
+      _TrophyId.allAppearanceForms =>
+        l10n.entitiesTrophyAllAppearanceFormsTitle,
     };
   }
 
   String description(AppLocalizations l10n) {
     return switch (id) {
       _TrophyId.singleEpisode => l10n.entitiesTrophySingleEpisodeDescription,
+      _TrophyId.sharedExactName =>
+        l10n.entitiesTrophySharedExactNameDescription,
       _TrophyId.onlyZombified =>
         l10n.entitiesTrophyOnlyZombifiedDescription,
+      _TrophyId.onlyCorpse => l10n.entitiesTrophyOnlyCorpseDescription,
       _TrophyId.onlyPhotograph =>
         l10n.entitiesTrophyOnlyPhotographDescription,
       _TrophyId.onlyFlashback =>
         l10n.entitiesTrophyOnlyFlashbackDescription,
+      _TrophyId.voiceIntroBeforePrimary =>
+        l10n.entitiesTrophyVoiceIntroBeforePrimaryDescription,
       _TrophyId.hasUltrasound =>
         l10n.entitiesTrophyHasUltrasoundDescription,
       _TrophyId.persistedOneSeason =>
@@ -1657,6 +1781,16 @@ class _TrophyDefinition {
       _TrophyId.hasDream => l10n.entitiesTrophyHasDreamDescription,
       _TrophyId.hasHallucination =>
         l10n.entitiesTrophyHasHallucinationDescription,
+      _TrophyId.introducedAtSeasonPremiere =>
+        l10n.entitiesTrophyIntroducedAtSeasonPremiereDescription,
+      _TrophyId.endedAtSeasonFinale =>
+        l10n.entitiesTrophyEndedAtSeasonFinaleDescription,
+      _TrophyId.consecutivePrimaryJourney =>
+        l10n.entitiesTrophyConsecutivePrimaryJourneyDescription,
+      _TrophyId.postJourneyFlashback =>
+        l10n.entitiesTrophyPostJourneyFlashbackDescription,
+      _TrophyId.postJourneyZombified =>
+        l10n.entitiesTrophyPostJourneyZombifiedDescription,
       _TrophyId.persistedAllSeasons =>
         l10n.entitiesTrophyPersistedAllSeasonsDescription,
       _TrophyId.persistedEveryEpisode =>
@@ -1665,6 +1799,8 @@ class _TrophyDefinition {
         l10n.entitiesTrophyAppearedInPilotDescription,
       _TrophyId.appearedInFinale =>
         l10n.entitiesTrophyAppearedInFinaleDescription,
+      _TrophyId.allAppearanceForms =>
+        l10n.entitiesTrophyAllAppearanceFormsDescription,
     };
   }
 }
@@ -1698,10 +1834,14 @@ class _TrophyTierStyle {
 }
 
 class _TrophyContext {
+  final Entity entity;
+  final List<Entity> entities;
   final List<EpisodeOut> episodes;
   final _PrimaryOccurrenceSlots primaryOccurrenceSlots;
 
   _TrophyContext({
+    required this.entity,
+    required this.entities,
     required this.episodes,
     required this.primaryOccurrenceSlots,
   });
@@ -1713,7 +1853,76 @@ class _TrophyContext {
 
   late final Set<String> continuityEpisodeKeys = _continuityEpisodeKeys();
 
+  late final List<EpisodeOut> sortedEpisodes = episodes.toList()
+    ..sort((a, b) {
+      final int aIndex = _episodeAbsoluteIndex(
+        a.episode.seasonNumber,
+        a.episode.episodeNumber,
+      );
+      final int bIndex = _episodeAbsoluteIndex(
+        b.episode.seasonNumber,
+        b.episode.episodeNumber,
+      );
+      return aIndex.compareTo(bIndex);
+    });
+
   int get uniqueAppearanceEpisodeCount => appearanceEpisodeKeys.length;
+
+  bool get hasSharedExactName {
+    return entities.any(
+      (other) => other.id != entity.id && other.name == entity.name,
+    );
+  }
+
+  bool get introducedByVoiceBeforePrimary {
+    final int? initialIndex = primaryOccurrenceSlots.initialIndex;
+    if (initialIndex == null || sortedEpisodes.isEmpty) {
+      return false;
+    }
+
+    final EpisodeOut firstAppearance = sortedEpisodes.first;
+    final int firstIndex = _episodeAbsoluteIndex(
+      firstAppearance.episode.seasonNumber,
+      firstAppearance.episode.episodeNumber,
+    );
+
+    return firstIndex < initialIndex &&
+        _normalizedAppearanceForm(firstAppearance) == 'voiceonly';
+  }
+
+  bool get primaryStartedAtSeasonPremiere {
+    return _primaryInitialOccurrence?.episode.episodeNumber == 1;
+  }
+
+  bool get primaryEndedAtSeasonFinale {
+    final EpisodeOut? finalOccurrence = _primaryFinalOccurrence;
+    if (finalOccurrence == null) {
+      return false;
+    }
+
+    final Episode episode = finalOccurrence.episode;
+    return episode.episodeNumber == _episodeCountsBySeason[episode.seasonNumber];
+  }
+
+  bool get consecutivePrimaryJourney {
+    final int? initialIndex = primaryOccurrenceSlots.initialIndex;
+    final int? finalIndex = primaryOccurrenceSlots.finalIndex;
+    return initialIndex != null &&
+        finalIndex != null &&
+        finalIndex == initialIndex + 1;
+  }
+
+  bool get hasAllKnownAppearanceForms {
+    final Set<String> forms = {};
+    for (final EpisodeOut appearance in episodes) {
+      final String? form = _normalizedAppearanceForm(appearance);
+      if (form != null) {
+        forms.add(form);
+      }
+    }
+
+    return _knownAppearanceForms.every(forms.contains);
+  }
 
   bool get persistedFullSeason {
     return _availableSeasons.any((season) {
@@ -1761,6 +1970,42 @@ class _TrophyContext {
     return episodes.isNotEmpty && episodes.every((appearance) {
       return _normalizedAppearanceForm(appearance) == formType;
     });
+  }
+
+  bool hasPostPrimaryAppearanceForm(String formType) {
+    final int? finalIndex = primaryOccurrenceSlots.finalIndex;
+    if (finalIndex == null) {
+      return false;
+    }
+
+    return episodes.any((appearance) {
+      final int index = _episodeAbsoluteIndex(
+        appearance.episode.seasonNumber,
+        appearance.episode.episodeNumber,
+      );
+      return index > finalIndex &&
+          _normalizedAppearanceForm(appearance) == formType;
+    });
+  }
+
+  EpisodeOut? get _primaryInitialOccurrence {
+    for (final EpisodeOut appearance in episodes) {
+      if (primaryOccurrenceSlots.isInitial(appearance)) {
+        return appearance;
+      }
+    }
+
+    return null;
+  }
+
+  EpisodeOut? get _primaryFinalOccurrence {
+    for (final EpisodeOut appearance in episodes) {
+      if (primaryOccurrenceSlots.isFinal(appearance)) {
+        return appearance;
+      }
+    }
+
+    return null;
   }
 
   Set<String> _continuityEpisodeKeys() {
@@ -1823,11 +2068,15 @@ class _EpisodeSlotRange {
 class _PrimaryOccurrenceSlots {
   final String? initialKey;
   final String? finalKey;
+  final int? initialIndex;
+  final int? finalIndex;
   final _EpisodeSlotRange appearanceRange;
 
   const _PrimaryOccurrenceSlots({
     required this.initialKey,
     required this.finalKey,
+    required this.initialIndex,
+    required this.finalIndex,
     required this.appearanceRange,
   });
 
@@ -1868,6 +2117,8 @@ _PrimaryOccurrenceSlots _primaryOccurrenceSlotsFor(List<EpisodeOut> episodes) {
     return _PrimaryOccurrenceSlots(
       initialKey: null,
       finalKey: null,
+      initialIndex: null,
+      finalIndex: null,
       appearanceRange: _EpisodeSlotRange.empty(),
     );
   }
@@ -1906,6 +2157,8 @@ _PrimaryOccurrenceSlots _primaryOccurrenceSlotsFor(List<EpisodeOut> episodes) {
     finalKey: finalOccurrence == null
         ? null
         : _episodeKeyForAppearance(finalOccurrence),
+    initialIndex: initialIndex,
+    finalIndex: finalIndex,
     appearanceRange: appearanceRange,
   );
 }
