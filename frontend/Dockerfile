@@ -9,6 +9,7 @@ RUN flutter pub get
 COPY . .
 
 RUN dart run build_runner build
+RUN flutter gen-l10n
 RUN flutter build web --release
 
 # Step 2
