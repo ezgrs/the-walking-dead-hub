@@ -89,9 +89,7 @@ class EntitiesScreen extends StatelessWidget {
               title: l10n.entitiesChooseIndexTitle,
               message: l10n.entitiesChooseIndexMessage,
             ),
-            EntitiesLoadInProgress() => _LoadingState(
-              label: l10n.entitiesRecordsLoadingLabel,
-            ),
+            EntitiesLoadInProgress() => _EntityListSkeleton(compact: compact),
             EntitiesLoadSuccessBase() => _buildEntitiesLoadSuccessState(
               context,
               state,
@@ -437,6 +435,323 @@ class _EntityCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _EntityListSkeleton extends StatelessWidget {
+  final bool compact;
+
+  const _EntityListSkeleton({required this.compact});
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final Widget content = compact
+        ? const Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _EntityListSkeletonPane(compact: true),
+              SizedBox(height: AppSpacing.lg),
+              _EntityDetailSkeletonPane(compact: true),
+            ],
+          )
+        : const Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                flex: 4,
+                child: _EntityListSkeletonPane(compact: false),
+              ),
+              SizedBox(width: AppSpacing.lg),
+              Expanded(
+                flex: 6,
+                child: _EntityDetailSkeletonPane(compact: false),
+              ),
+            ],
+          );
+
+    return Semantics(
+      label: l10n.entitiesRecordsLoadingLabel,
+      child: _Shimmer(child: content),
+    );
+  }
+}
+
+class _EntityListSkeletonPane extends StatelessWidget {
+  final bool compact;
+
+  const _EntityListSkeletonPane({required this.compact});
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget cards = compact
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: _skeletonCards(6),
+          )
+        : Expanded(
+            child: ListView.separated(
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: 8,
+              itemBuilder: (context, index) => const _EntitySkeletonCard(),
+              separatorBuilder: (context, index) =>
+                  const SizedBox(height: AppSpacing.sm),
+            ),
+          );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _SkeletonBlock(height: 48, radius: 8),
+        const SizedBox(height: AppSpacing.md),
+        cards,
+      ],
+    );
+  }
+
+  static List<Widget> _skeletonCards(int count) {
+    return List<Widget>.generate(count, (index) {
+      return Padding(
+        padding: EdgeInsets.only(top: index == 0 ? 0 : AppSpacing.sm),
+        child: const _EntitySkeletonCard(),
+      );
+    });
+  }
+}
+
+class _EntityDetailSkeletonPane extends StatelessWidget {
+  final bool compact;
+
+  const _EntityDetailSkeletonPane({required this.compact});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _SkeletonBlock(width: 220, height: 28, radius: 7),
+                    SizedBox(height: AppSpacing.sm),
+                    _SkeletonBlock(width: 300, height: 16, radius: 6),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceMuted,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.border),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          const Row(
+            children: [
+              _SkeletonBlock(width: 120, height: 36, radius: 8),
+              SizedBox(width: AppSpacing.sm),
+              _SkeletonBlock(width: 84, height: 36, radius: 8),
+              SizedBox(width: AppSpacing.sm),
+              _SkeletonBlock(width: 88, height: 36, radius: 8),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          if (compact) ...[
+            const _EntityDetailMapSkeleton(),
+          ] else ...[
+            Expanded(child: const _EntityDetailMapSkeleton()),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _EntityDetailMapSkeleton extends StatelessWidget {
+  const _EntityDetailMapSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Align(
+          alignment: Alignment.centerRight,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _SkeletonBlock(width: 40, height: 40, radius: 8),
+              SizedBox(width: AppSpacing.sm),
+              _SkeletonBlock(width: 168, height: 40, radius: 8),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        ...List<Widget>.generate(6, (index) {
+          return Padding(
+            padding: EdgeInsets.only(top: index == 0 ? 0 : AppSpacing.md),
+            child: const _SkeletonEpisodeRow(),
+          );
+        }),
+      ],
+    );
+  }
+}
+
+class _SkeletonEpisodeRow extends StatelessWidget {
+  const _SkeletonEpisodeRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SkeletonBlock(width: 34, height: 34, radius: 8),
+        SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Wrap(
+            spacing: AppSpacing.xs,
+            runSpacing: AppSpacing.xs,
+            children: [
+              _SkeletonBlock(width: 34, height: 34, radius: 8),
+              _SkeletonBlock(width: 34, height: 34, radius: 8),
+              _SkeletonBlock(width: 34, height: 34, radius: 8),
+              _SkeletonBlock(width: 34, height: 34, radius: 8),
+              _SkeletonBlock(width: 34, height: 34, radius: 8),
+              _SkeletonBlock(width: 34, height: 34, radius: 8),
+              _SkeletonBlock(width: 34, height: 34, radius: 8),
+              _SkeletonBlock(width: 34, height: 34, radius: 8),
+              _SkeletonBlock(width: 34, height: 34, radius: 8),
+              _SkeletonBlock(width: 34, height: 34, radius: 8),
+              _SkeletonBlock(width: 34, height: 34, radius: 8),
+              _SkeletonBlock(width: 34, height: 34, radius: 8),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _EntitySkeletonCard extends StatelessWidget {
+  const _EntitySkeletonCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: const Row(
+        children: [
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: _SkeletonBlock(width: 180, height: 18, radius: 6),
+            ),
+          ),
+          SizedBox(width: AppSpacing.md),
+          _SkeletonBlock(width: 22, height: 22, radius: 8),
+        ],
+      ),
+    );
+  }
+}
+
+class _Shimmer extends StatefulWidget {
+  final Widget child;
+
+  const _Shimmer({required this.child});
+
+  @override
+  State<_Shimmer> createState() => _ShimmerState();
+}
+
+class _ShimmerState extends State<_Shimmer>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1200),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      child: widget.child,
+      builder: (context, child) {
+        return ShaderMask(
+          blendMode: BlendMode.srcATop,
+          shaderCallback: (bounds) {
+            final double width = bounds.width;
+            final double offset = (width * 2 * _controller.value) - width;
+
+            return LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: const [
+                AppColors.surfaceMuted,
+                AppColors.surface,
+                AppColors.surfaceMuted,
+              ],
+              stops: const [0.2, 0.5, 0.8],
+            ).createShader(
+              Rect.fromLTWH(offset, 0, width, bounds.height),
+            );
+          },
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+    );
+  }
+}
+
+class _SkeletonBlock extends StatelessWidget {
+  final double? width;
+  final double height;
+  final double radius;
+
+  const _SkeletonBlock({
+    this.width,
+    required this.height,
+    required this.radius,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(radius),
       ),
     );
   }
