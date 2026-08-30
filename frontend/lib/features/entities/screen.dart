@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:go_router/go_router.dart';
-import 'package:responsive_framework/responsive_framework.dart' as rf;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../main.dart';
 import '../../models.dart';
-import '../../widgets/button.dart';
-import '../../widgets/header.dart';
-import '../../widgets/maybe.dart';
+import '../../widgets/indexed_master_detail.dart';
 import 'bloc.dart';
 import 'bloc_event.dart';
 import 'bloc_state.dart';
@@ -48,804 +44,118 @@ class EntitiesScreen extends StatelessWidget {
 
   const EntitiesScreen({super.key, required this.bloc});
 
-  Widget _buildIndicesLoadSuccessState(
-    BuildContext context,
-    IndicesLoadSuccessBase state, {
-    required bool compact,
-  }) {
+  @override
+  Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
-    final String? selectedIndex = switch (state) {
-      IndexSelectedInitialBase(:final index) => index,
-      _ => null,
-    };
-    final List<Widget> indexButtons = state.indices
-        .map(
-          (obj) => AppButton(
-            label: '${obj.index} (${obj.count})',
-            onTap: () => bloc.add(IndexLoadRequested(index: obj.index)),
-            selected: selectedIndex == obj.index,
-            padding: const EdgeInsets.symmetric(
-              vertical: AppSpacing.sm,
-              horizontal: AppSpacing.md,
-            ),
-          ),
-        )
-        .toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          children: indexButtons,
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        MaybeWidget(
-          enabled: !compact,
-          builder: (child) => Expanded(child: child),
-          child: switch (state) {
-            IndicesInitial() => _EmptyState(
-              icon: Icons.touch_app_rounded,
-              title: l10n.entitiesChooseIndexTitle,
-              message: l10n.entitiesChooseIndexMessage,
-            ),
-            EntitiesLoadInProgress() => _EntityListSkeleton(compact: compact),
-            EntitiesLoadSuccessBase() => _buildEntitiesLoadSuccessState(
-              context,
-              state,
-              compact: compact,
-            ),
-          },
-        ),
-      ],
+    return DefaultTabController(
+      length: 3,
+      child: BlocBuilder<EntitiesBloc, EntitiesState>(
+        bloc: bloc,
+        builder: (context, state) {
+          return AppIndexedMasterDetailPage<Entity>(
+            icon: Icons.groups_rounded,
+            color: AppColors.accent,
+            iconBackgroundColor: AppColors.accentSoft,
+            title: l10n.homepageEntitiesButtonLabel,
+            indicesLoading: state is IndicesLoadInProgress,
+            recordsLoading: state is EntitiesLoadInProgress,
+            indices: _indicesFor(state),
+            selectedIndex: _selectedIndexFor(state),
+            onIndexSelected: (index) =>
+                bloc.add(IndexLoadRequested(index: index)),
+            records: _entitiesFor(state),
+            recordsArePreFiltered: true,
+            selectedRecordKey: _selectedEntityIdFor(state),
+            recordIndexBuilder: _indexForEntity,
+            recordKeyBuilder: (entity) => entity.id,
+            recordLabelBuilder: (entity) => entity.name,
+            onRecordSelected: (entity) =>
+                bloc.add(EpisodesLoadRequested(entityId: entity.id)),
+            detailBuilder: (context, compact) =>
+                _buildDetail(context, state, compact),
+            searchHint: l10n.entitiesSearchHint,
+            chooseIndexTitle: l10n.entitiesChooseIndexTitle,
+            chooseIndexMessage: l10n.entitiesChooseIndexMessage,
+            emptyRecordsTitle: l10n.entitiesNoResultsTitle,
+            emptyRecordsMessage: l10n.entitiesNoResultsMessage,
+            emptySearchTitle: l10n.entitiesNoResultsTitle,
+            emptySearchMessage: l10n.entitiesNoSearchResultsMessage,
+          );
+        },
+      ),
     );
   }
 
-  Widget _buildEntitiesLoadSuccessState(
-    BuildContext context,
-    EntitiesLoadSuccessBase state, {
-    required bool compact,
-  }) {
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
-    final int? selectedEntityId = switch (state) {
+  List<AppIndexedMasterDetailIndex>? _indicesFor(EntitiesState state) {
+    return switch (state) {
+      IndicesLoadSuccessBase(:final indices) => indices
+          .map(
+            (index) => AppIndexedMasterDetailIndex(
+              value: index.index,
+              count: index.count,
+            ),
+          )
+          .toList(),
+      _ => const [],
+    };
+  }
+
+  String? _selectedIndexFor(EntitiesState state) {
+    return switch (state) {
+      IndexSelectedInitialBase(:final index) => index,
+      _ => null,
+    };
+  }
+
+  List<Entity> _entitiesFor(EntitiesState state) {
+    return switch (state) {
+      EntitiesLoadSuccessBase(:final entities) => entities,
+      _ => const [],
+    };
+  }
+
+  int? _selectedEntityIdFor(EntitiesState state) {
+    return switch (state) {
       EpisodesLoadInProgress(:final selectedEntityId) => selectedEntityId,
       EntitySelectedInitial(:final stats) => stats.entity.id,
       _ => null,
     };
-    final Widget list = _EntityList(
-      bloc: bloc,
-      entities: state.entities,
-      selectedEntityId: selectedEntityId,
-      compact: compact,
-    );
-    final Widget detail = switch (state) {
-      EntitiesInitial() => _EmptyState(
+  }
+
+  Widget _buildDetail(
+    BuildContext context,
+    EntitiesState state,
+    bool compact,
+  ) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final List<Entity> entities = _entitiesFor(state);
+
+    return switch (state) {
+      EpisodesLoadInProgress() => AppIndexedDetailSkeleton(
+        compact: compact,
+        tabs: const _EntityDetailsTabs(),
+      ),
+      EntitySelectedInitial(:final stats) => _EntityDetails(
+        stats: stats,
+        entities: entities,
+        compact: compact,
+      ),
+      _ => AppIndexedEmptyState(
         icon: Icons.badge_rounded,
         title: l10n.entitiesSelectRecordTitle,
         message: l10n.entitiesSelectRecordMessage,
       ),
-      EpisodesLoadInProgress() => _EntityDetailSkeleton(compact: compact),
-      EntitySelectedInitial(:final stats) => _EntityDetails(
-        stats: stats,
-        entities: state.entities,
-        compact: compact,
-      ),
     };
+  }
 
-    if (compact) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          list,
-          const SizedBox(height: AppSpacing.lg),
-          detail,
-        ],
-      );
+  String _indexForEntity(Entity entity) {
+    final String name = entity.name.trim();
+    if (name.isEmpty) {
+      return '#';
     }
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(flex: 4, child: list),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(flex: 6, child: detail),
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bool compact = rf.ResponsiveBreakpoints.of(
-      context,
-    ).smallerThan(kDeviceDesktop);
-
-    final List<Widget> children = [
-      const HeaderWidget(),
-      MaybeWidget(
-        enabled: !compact,
-        builder: (child) => Expanded(child: child),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1180),
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                compact ? AppSpacing.md : AppSpacing.xl,
-                AppSpacing.lg,
-                compact ? AppSpacing.md : AppSpacing.xl,
-                AppSpacing.xl,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _PageTitle(
-                    title: AppLocalizations.of(
-                      context,
-                    )!.homepageEntitiesButtonLabel,
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  MaybeWidget(
-                    enabled: !compact,
-                    builder: (child) => Expanded(child: child),
-                    child: BlocBuilder<EntitiesBloc, EntitiesState>(
-                      bloc: bloc,
-                      builder: (context, state) {
-                        return switch (state) {
-                          IndicesLoadInProgress() => _EntitiesInitialSkeleton(
-                            compact: compact,
-                          ),
-                          IndicesLoadSuccessBase() =>
-                            _buildIndicesLoadSuccessState(
-                              context,
-                              state,
-                              compact: compact,
-                            ),
-                        };
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    ];
-
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        body: DecoratedBox(
-          decoration: const BoxDecoration(color: AppColors.background),
-          child: compact
-              ? ListView(children: children)
-              : Column(children: children),
-        ),
-      ),
-    );
-  }
-}
-
-class _PageTitle extends StatelessWidget {
-  final String title;
-
-  const _PageTitle({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        IconButton(
-          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-          onPressed: () {
-            final NavigatorState navigator = Navigator.of(context);
-            if (navigator.canPop()) {
-              navigator.pop();
-              return;
-            }
-
-            GoRouter.of(context).go('/');
-          },
-          icon: const Icon(Icons.arrow_back_rounded),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: AppColors.accentSoft,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Icon(Icons.groups_rounded, color: AppColors.accent),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Text(title, style: Theme.of(context).textTheme.displayMedium),
-        ),
-      ],
-    );
-  }
-}
-
-class _EntityList extends StatefulWidget {
-  final EntitiesBloc bloc;
-  final List<Entity> entities;
-  final int? selectedEntityId;
-  final bool compact;
-
-  const _EntityList({
-    required this.bloc,
-    required this.entities,
-    required this.selectedEntityId,
-    required this.compact,
-  });
-
-  @override
-  State<_EntityList> createState() => _EntityListState();
-}
-
-class _EntityListState extends State<_EntityList> {
-  String _query = '';
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
-
-    if (widget.entities.isEmpty) {
-      return _EmptyState(
-        icon: Icons.search_off_rounded,
-        title: l10n.entitiesNoResultsTitle,
-        message: l10n.entitiesNoResultsMessage,
-      );
-    }
-
-    final String normalizedQuery = _normalizeSearchText(_query);
-    final List<Entity> visibleEntities = widget.entities
-        .where(
-          (entity) =>
-              normalizedQuery.isEmpty ||
-              _normalizeSearchText(entity.name).contains(normalizedQuery),
-        )
-        .toList();
-
-    final Widget results = visibleEntities.isEmpty
-        ? _EmptyState(
-            icon: Icons.search_off_rounded,
-            title: l10n.entitiesNoResultsTitle,
-            message: l10n.entitiesNoSearchResultsMessage,
-          )
-        : _EntityCards(
-            bloc: widget.bloc,
-            entities: visibleEntities,
-            selectedEntityId: widget.selectedEntityId,
-            compact: widget.compact,
-          );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        TextField(
-          onChanged: (value) => setState(() => _query = value),
-          decoration: InputDecoration(
-            hintText: l10n.entitiesSearchHint,
-            prefixIcon: const Icon(Icons.search_rounded),
-            isDense: true,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        widget.compact ? results : Expanded(child: results),
-      ],
-    );
-  }
-}
-
-class _EntityCards extends StatelessWidget {
-  final EntitiesBloc bloc;
-  final List<Entity> entities;
-  final int? selectedEntityId;
-  final bool compact;
-
-  const _EntityCards({
-    required this.bloc,
-    required this.entities,
-    required this.selectedEntityId,
-    required this.compact,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (entities.isEmpty) {
-      final AppLocalizations l10n = AppLocalizations.of(context)!;
-      return _EmptyState(
-        icon: Icons.search_off_rounded,
-        title: l10n.entitiesNoResultsTitle,
-        message: l10n.entitiesNoResultsMessage,
-      );
-    }
-
-    final Iterable<Widget> cards = entities.map(
-      (entity) => _EntityCard(
-        bloc: bloc,
-        entity: entity,
-        selected: selectedEntityId == entity.id,
-      ),
-    );
-
-    if (compact) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children:
-            cards
-                .expand(
-                  (child) => [child, const SizedBox(height: AppSpacing.sm)],
-                )
-                .toList()
-              ..removeLast(),
-      );
-    }
-
-    return ListView.separated(
-      itemCount: entities.length,
-      itemBuilder: (context, index) {
-        final Entity entity = entities[index];
-        return _EntityCard(
-          bloc: bloc,
-          entity: entity,
-          selected: selectedEntityId == entity.id,
-        );
-      },
-      separatorBuilder: (context, index) =>
-          const SizedBox(height: AppSpacing.sm),
-    );
-  }
-}
-
-class _EntityCard extends StatelessWidget {
-  final EntitiesBloc bloc;
-  final Entity entity;
-  final bool selected;
-
-  const _EntityCard({
-    required this.entity,
-    required this.bloc,
-    required this.selected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final Color background = selected
-        ? AppColors.accentSoft
-        : AppColors.surface;
-    final BorderSide border = selected
-        ? const BorderSide(color: AppColors.accent, width: 1.5)
-        : const BorderSide(color: AppColors.border);
-
-    return Material(
-      color: background,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: border,
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: () => bloc.add(EpisodesLoadRequested(entityId: entity.id)),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      entity.name,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: selected ? AppColors.accent : AppColors.muted,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _EntityListSkeleton extends StatelessWidget {
-  final bool compact;
-
-  const _EntityListSkeleton({required this.compact});
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
-
-    return Semantics(
-      label: l10n.entitiesRecordsLoadingLabel,
-      child: _Shimmer(child: _EntityContentSkeleton(compact: compact)),
-    );
-  }
-}
-
-class _EntitiesInitialSkeleton extends StatelessWidget {
-  final bool compact;
-
-  const _EntitiesInitialSkeleton({required this.compact});
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
-    final Widget content = compact
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const _IndexButtonsSkeleton(),
-              const SizedBox(height: AppSpacing.lg),
-              _EntityContentSkeleton(compact: compact),
-            ],
-          )
-        : Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const _IndexButtonsSkeleton(),
-              const SizedBox(height: AppSpacing.lg),
-              Expanded(child: _EntityContentSkeleton(compact: compact)),
-            ],
-          );
-
-    return Semantics(
-      label: l10n.entitiesIndicesLoadingLabel,
-      child: _Shimmer(child: content),
-    );
-  }
-}
-
-class _IndexButtonsSkeleton extends StatelessWidget {
-  const _IndexButtonsSkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Wrap(
-      spacing: AppSpacing.sm,
-      runSpacing: AppSpacing.sm,
-      children: [
-        _SkeletonBlock(width: 58, height: 38, radius: 8),
-        _SkeletonBlock(width: 64, height: 38, radius: 8),
-        _SkeletonBlock(width: 56, height: 38, radius: 8),
-        _SkeletonBlock(width: 68, height: 38, radius: 8),
-        _SkeletonBlock(width: 60, height: 38, radius: 8),
-        _SkeletonBlock(width: 62, height: 38, radius: 8),
-        _SkeletonBlock(width: 54, height: 38, radius: 8),
-        _SkeletonBlock(width: 66, height: 38, radius: 8),
-        _SkeletonBlock(width: 58, height: 38, radius: 8),
-        _SkeletonBlock(width: 64, height: 38, radius: 8),
-      ],
-    );
-  }
-}
-
-class _EntityContentSkeleton extends StatelessWidget {
-  final bool compact;
-
-  const _EntityContentSkeleton({required this.compact});
-
-  @override
-  Widget build(BuildContext context) {
-    if (compact) {
-      return const Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _EntityListSkeletonPane(compact: true),
-          SizedBox(height: AppSpacing.lg),
-          _EntityDetailSkeletonPane(compact: true),
-        ],
-      );
-    }
-
-    return const Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(flex: 4, child: _EntityListSkeletonPane(compact: false)),
-        SizedBox(width: AppSpacing.lg),
-        Expanded(flex: 6, child: _EntityDetailSkeletonPane(compact: false)),
-      ],
-    );
-  }
-}
-
-class _EntityListSkeletonPane extends StatelessWidget {
-  final bool compact;
-
-  const _EntityListSkeletonPane({required this.compact});
-
-  @override
-  Widget build(BuildContext context) {
-    final Widget cards = compact
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: _skeletonCards(6),
-          )
-        : Expanded(
-            child: ListView.separated(
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: 8,
-              itemBuilder: (context, index) => const _EntitySkeletonCard(),
-              separatorBuilder: (context, index) =>
-                  const SizedBox(height: AppSpacing.sm),
-            ),
-          );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const _SkeletonBlock(height: 48, radius: 8),
-        const SizedBox(height: AppSpacing.md),
-        cards,
-      ],
-    );
-  }
-
-  static List<Widget> _skeletonCards(int count) {
-    return List<Widget>.generate(count, (index) {
-      return Padding(
-        padding: EdgeInsets.only(top: index == 0 ? 0 : AppSpacing.sm),
-        child: const _EntitySkeletonCard(),
-      );
-    });
-  }
-}
-
-class _EntityDetailSkeletonPane extends StatelessWidget {
-  final bool compact;
-
-  const _EntityDetailSkeletonPane({required this.compact});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _SkeletonBlock(width: 220, height: 28, radius: 7),
-                    SizedBox(height: AppSpacing.sm),
-                    _SkeletonBlock(width: 300, height: 16, radius: 6),
-                  ],
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceMuted,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.border),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          const _EntityDetailsTabs(),
-          const SizedBox(height: AppSpacing.md),
-          if (compact) ...[
-            const _EntityDetailMapSkeleton(),
-          ] else ...[
-            Expanded(child: const _EntityDetailMapSkeleton()),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _EntityDetailSkeleton extends StatelessWidget {
-  final bool compact;
-
-  const _EntityDetailSkeleton({required this.compact});
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
-
-    return Semantics(
-      label: l10n.entitiesRecordsLoadingLabel,
-      child: _Shimmer(
-        child: _EntityDetailSkeletonPane(compact: compact),
-      ),
-    );
-  }
-}
-
-class _EntityDetailMapSkeleton extends StatelessWidget {
-  const _EntityDetailMapSkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Align(
-          alignment: Alignment.centerRight,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _SkeletonBlock(width: 40, height: 40, radius: 8),
-              SizedBox(width: AppSpacing.sm),
-              _SkeletonBlock(width: 168, height: 40, radius: 8),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        ...List<Widget>.generate(6, (index) {
-          return Padding(
-            padding: EdgeInsets.only(top: index == 0 ? 0 : AppSpacing.md),
-            child: const _SkeletonEpisodeRow(),
-          );
-        }),
-      ],
-    );
-  }
-}
-
-class _SkeletonEpisodeRow extends StatelessWidget {
-  const _SkeletonEpisodeRow();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SkeletonBlock(width: 34, height: 34, radius: 8),
-        SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Wrap(
-            spacing: AppSpacing.xs,
-            runSpacing: AppSpacing.xs,
-            children: [
-              _SkeletonBlock(width: 34, height: 34, radius: 8),
-              _SkeletonBlock(width: 34, height: 34, radius: 8),
-              _SkeletonBlock(width: 34, height: 34, radius: 8),
-              _SkeletonBlock(width: 34, height: 34, radius: 8),
-              _SkeletonBlock(width: 34, height: 34, radius: 8),
-              _SkeletonBlock(width: 34, height: 34, radius: 8),
-              _SkeletonBlock(width: 34, height: 34, radius: 8),
-              _SkeletonBlock(width: 34, height: 34, radius: 8),
-              _SkeletonBlock(width: 34, height: 34, radius: 8),
-              _SkeletonBlock(width: 34, height: 34, radius: 8),
-              _SkeletonBlock(width: 34, height: 34, radius: 8),
-              _SkeletonBlock(width: 34, height: 34, radius: 8),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _EntitySkeletonCard extends StatelessWidget {
-  const _EntitySkeletonCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: const Row(
-        children: [
-          Expanded(
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: _SkeletonBlock(width: 180, height: 18, radius: 6),
-            ),
-          ),
-          SizedBox(width: AppSpacing.md),
-          _SkeletonBlock(width: 22, height: 22, radius: 8),
-        ],
-      ),
-    );
-  }
-}
-
-class _Shimmer extends StatefulWidget {
-  final Widget child;
-
-  const _Shimmer({required this.child});
-
-  @override
-  State<_Shimmer> createState() => _ShimmerState();
-}
-
-class _ShimmerState extends State<_Shimmer>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1200),
-  )..repeat();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      child: widget.child,
-      builder: (context, child) {
-        return ShaderMask(
-          blendMode: BlendMode.srcATop,
-          shaderCallback: (bounds) {
-            final double width = bounds.width;
-            final double offset = (width * 2 * _controller.value) - width;
-
-            return LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: const [
-                AppColors.surfaceMuted,
-                AppColors.surface,
-                AppColors.surfaceMuted,
-              ],
-              stops: const [0.2, 0.5, 0.8],
-            ).createShader(
-              Rect.fromLTWH(offset, 0, width, bounds.height),
-            );
-          },
-          child: child ?? const SizedBox.shrink(),
-        );
-      },
-    );
-  }
-}
-
-class _SkeletonBlock extends StatelessWidget {
-  final double? width;
-  final double height;
-  final double radius;
-
-  const _SkeletonBlock({
-    this.width,
-    required this.height,
-    required this.radius,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: AppColors.surfaceMuted,
-        borderRadius: BorderRadius.circular(radius),
-      ),
-    );
+    return name.substring(0, 1).toUpperCase();
   }
 }
 
@@ -3169,18 +2479,6 @@ bool _isFinalPrimaryOccurrence(EpisodeOut appearance) {
 
 String? _normalizedAppearanceForm(EpisodeOut appearance) {
   return appearance.appearanceFormTypeLabel?.trim().toLowerCase();
-}
-
-String _normalizeSearchText(String value) {
-  return value
-      .trim()
-      .toLowerCase()
-      .replaceAll(RegExp('[áàâãä]'), 'a')
-      .replaceAll(RegExp('[éèêë]'), 'e')
-      .replaceAll(RegExp('[íìîï]'), 'i')
-      .replaceAll(RegExp('[óòôõö]'), 'o')
-      .replaceAll(RegExp('[úùûü]'), 'u')
-      .replaceAll('ç', 'c');
 }
 
 int _episodeAbsoluteIndex(int season, int episode) {
