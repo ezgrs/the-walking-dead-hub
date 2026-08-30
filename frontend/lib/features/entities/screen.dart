@@ -1142,9 +1142,7 @@ _EpisodeSlotRange _appearanceRangeFor(List<EpisodeOut> episodes) {
 
   Episode? first;
   for (final EpisodeOut appearance in sorted) {
-    final bool isFirst =
-        appearance.appearanceTypeLabel.trim().toLowerCase() == 'first';
-    if (isFirst && appearance.appearanceFormTypeLabel == null) {
+    if (_isInitialMainOccurrence(appearance)) {
       first = appearance.episode;
       break;
     }
@@ -1180,6 +1178,16 @@ _EpisodeSlotRange _appearanceRangeFor(List<EpisodeOut> episodes) {
     start: firstIndex,
     end: _episodeAbsoluteIndex(last.seasonNumber, last.episodeNumber),
   );
+}
+
+bool _isInitialMainOccurrence(EpisodeOut appearance) {
+  final bool isFirst =
+      appearance.appearanceTypeLabel.trim().toLowerCase() == 'first';
+  final String? formType = appearance.appearanceFormTypeLabel
+      ?.trim()
+      .toLowerCase();
+
+  return isFirst && (formType == null || formType == 'physically');
 }
 
 String _normalizeSearchText(String value) {
