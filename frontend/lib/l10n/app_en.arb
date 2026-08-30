@@ -110,5 +110,19 @@
   "entitiesAppearanceFormUltrasoundLabel": "Ultrasound",
   "entitiesSeasonLabel": "Season",
   "entitiesSeasonShortLabel": "S",
-  "entitiesEpisodeShortLabel": "E"
+  "entitiesEpisodeShortLabel": "E",
+  "seasonsSearchHint": "Search by episode",
+  "seasonsChooseIndexTitle": "Choose a season",
+  "seasonsChooseIndexMessage": "Select a season above to list its episodes.",
+  "seasonsSelectEpisodeTitle": "Select an episode",
+  "seasonsSelectEpisodeMessage": "Tap an episode to see appearances and links.",
+  "seasonsNoResultsTitle": "No episodes",
+  "seasonsNoResultsMessage": "Try selecting another season.",
+  "seasonsNoSearchResultsMessage": "No episode matches this search.",
+  "seasonsEpisodeShortLabel": "E",
+  "seasonsAppearancesTitle": "Appearances",
+  "seasonsAppearancesMetricLabel": "Appearances",
+  "seasonsAppearanceFormsMetricLabel": "Forms",
+  "seasonsNoAppearancesTitle": "No appearances",
+  "seasonsNoAppearancesMessage": "There are no appearances registered for this episode yet."
 }

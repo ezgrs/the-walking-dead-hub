@@ -110,5 +110,19 @@
   "entitiesAppearanceFormUltrasoundLabel": "Ultrassom",
   "entitiesSeasonLabel": "Temporada",
   "entitiesSeasonShortLabel": "T",
-  "entitiesEpisodeShortLabel": "E"
+  "entitiesEpisodeShortLabel": "E",
+  "seasonsSearchHint": "Buscar por episódio",
+  "seasonsChooseIndexTitle": "Escolha uma temporada",
+  "seasonsChooseIndexMessage": "Selecione uma temporada acima para listar os episódios.",
+  "seasonsSelectEpisodeTitle": "Selecione um episódio",
+  "seasonsSelectEpisodeMessage": "Toque em um episódio para ver aparições e links.",
+  "seasonsNoResultsTitle": "Nenhum episódio",
+  "seasonsNoResultsMessage": "Tente selecionar outra temporada.",
+  "seasonsNoSearchResultsMessage": "Nenhum episódio corresponde a esta busca.",
+  "seasonsEpisodeShortLabel": "E",
+  "seasonsAppearancesTitle": "Aparições",
+  "seasonsAppearancesMetricLabel": "Aparições",
+  "seasonsAppearanceFormsMetricLabel": "Formas",
+  "seasonsNoAppearancesTitle": "Sem aparições",
+  "seasonsNoAppearancesMessage": "Ainda não há aparições cadastradas para este episódio."
 }

@@ -1,6 +1,7 @@
 import 'package:dorm_annotations/dorm_annotations.dart';
 
 part 'features/entities/models.dart';
+part 'features/seasons/models.dart';
 part 'models.g.dart';
 part 'models.dorm.dart';
 

@@ -11,6 +11,10 @@ import 'features/entities/bloc_event.dart';
 import 'features/entities/repository.dart';
 import 'features/entities/screen.dart';
 import 'features/home/screen.dart';
+import 'features/seasons/bloc.dart';
+import 'features/seasons/bloc_event.dart';
+import 'features/seasons/repository.dart';
+import 'features/seasons/screen.dart';
 import 'l10n/app_localizations.dart';
 
 Future<void> main() async {
@@ -88,8 +92,17 @@ class MainApp extends StatelessWidget {
               ),
               GoRoute(
                 path: '/seasons',
-                pageBuilder: (context, state) =>
-                    NoTransitionPage(key: state.pageKey, child: Placeholder()),
+                pageBuilder: (context, state) => NoTransitionPage(
+                  key: state.pageKey,
+                  child: SeasonsScreen(
+                    bloc: SeasonsBloc(
+                      repository: SeasonsRepository(
+                        vault: vault,
+                        authenticator: authenticator,
+                      ),
+                    )..add(const SeasonsIndicesLoadRequested()),
+                  ),
+                ),
               ),
               GoRoute(
                 path: '/episodes',

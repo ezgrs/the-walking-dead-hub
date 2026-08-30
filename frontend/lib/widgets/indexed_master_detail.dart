@@ -11,8 +11,9 @@ typedef AppRecordIndexBuilder<T> = String Function(T record);
 typedef AppRecordKeyBuilder<T> = Object Function(T record);
 typedef AppRecordLabelBuilder<T> = String Function(T record);
 typedef AppRecordSelected<T> = void Function(T record);
-typedef AppIndexedDetailBuilder = Widget Function(
+typedef AppIndexedDetailBuilder<T> = Widget Function(
   BuildContext context,
+  T? selectedRecord,
   bool compact,
 );
 
@@ -64,7 +65,7 @@ class AppIndexedMasterDetailPage<T> extends StatelessWidget {
   final AppRecordKeyBuilder<T> recordKeyBuilder;
   final AppRecordLabelBuilder<T> recordLabelBuilder;
   final AppRecordSelected<T> onRecordSelected;
-  final AppIndexedDetailBuilder detailBuilder;
+  final AppIndexedDetailBuilder<T> detailBuilder;
   final String searchHint;
   final String chooseIndexTitle;
   final String chooseIndexMessage;
@@ -273,7 +274,7 @@ class _IndexedMasterDetailBody<T> extends StatelessWidget {
   final AppRecordKeyBuilder<T> recordKeyBuilder;
   final AppRecordLabelBuilder<T> recordLabelBuilder;
   final AppRecordSelected<T> onRecordSelected;
-  final AppIndexedDetailBuilder detailBuilder;
+  final AppIndexedDetailBuilder<T> detailBuilder;
   final String searchHint;
   final String chooseIndexTitle;
   final String chooseIndexMessage;
@@ -372,7 +373,7 @@ class _IndexedMasterDetailBody<T> extends StatelessWidget {
       emptyTitle: emptySearchTitle,
       emptyMessage: emptySearchMessage,
     );
-    final Widget detail = detailBuilder(context, compact);
+    final Widget detail = detailBuilder(context, _selectedRecord, compact);
 
     if (compact) {
       return Column(
@@ -393,6 +394,21 @@ class _IndexedMasterDetailBody<T> extends StatelessWidget {
         Expanded(flex: 6, child: detail),
       ],
     );
+  }
+
+  T? get _selectedRecord {
+    final Object? selectedRecordKey = this.selectedRecordKey;
+    if (selectedRecordKey == null) {
+      return null;
+    }
+
+    for (final T record in records) {
+      if (recordKeyBuilder(record) == selectedRecordKey) {
+        return record;
+      }
+    }
+
+    return null;
   }
 }
 

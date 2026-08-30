@@ -72,7 +72,7 @@ class EntitiesScreen extends StatelessWidget {
             recordLabelBuilder: (entity) => entity.name,
             onRecordSelected: (entity) =>
                 bloc.add(EpisodesLoadRequested(entityId: entity.id)),
-            detailBuilder: (context, compact) =>
+            detailBuilder: (context, _, compact) =>
                 _buildDetail(context, state, compact),
             searchHint: l10n.entitiesSearchHint,
             chooseIndexTitle: l10n.entitiesChooseIndexTitle,
