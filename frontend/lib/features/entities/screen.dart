@@ -108,6 +108,7 @@ class EntitiesScreen extends StatelessWidget {
   }) {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
     final int? selectedEntityId = switch (state) {
+      EpisodesLoadInProgress(:final selectedEntityId) => selectedEntityId,
       EntitySelectedInitial(:final stats) => stats.entity.id,
       _ => null,
     };
@@ -123,6 +124,7 @@ class EntitiesScreen extends StatelessWidget {
         title: l10n.entitiesSelectRecordTitle,
         message: l10n.entitiesSelectRecordMessage,
       ),
+      EpisodesLoadInProgress() => _EntityDetailSkeleton(compact: compact),
       EntitySelectedInitial(:final stats) => _EntityDetails(
         stats: stats,
         entities: state.entities,
@@ -156,7 +158,6 @@ class EntitiesScreen extends StatelessWidget {
     final bool compact = rf.ResponsiveBreakpoints.of(
       context,
     ).smallerThan(kDeviceDesktop);
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
 
     final List<Widget> children = [
       const HeaderWidget(),
@@ -189,8 +190,8 @@ class EntitiesScreen extends StatelessWidget {
                       bloc: bloc,
                       builder: (context, state) {
                         return switch (state) {
-                          IndicesLoadInProgress() => _LoadingState(
-                            label: l10n.entitiesIndicesLoadingLabel,
+                          IndicesLoadInProgress() => _EntitiesInitialSkeleton(
+                            compact: compact,
                           ),
                           IndicesLoadSuccessBase() =>
                             _buildIndicesLoadSuccessState(
@@ -210,12 +211,15 @@ class EntitiesScreen extends StatelessWidget {
       ),
     ];
 
-    return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(color: AppColors.background),
-        child: compact
-            ? ListView(children: children)
-            : Column(children: children),
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        body: DecoratedBox(
+          decoration: const BoxDecoration(color: AppColors.background),
+          child: compact
+              ? ListView(children: children)
+              : Column(children: children),
+        ),
       ),
     );
   }
@@ -448,33 +452,96 @@ class _EntityListSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
+
+    return Semantics(
+      label: l10n.entitiesRecordsLoadingLabel,
+      child: _Shimmer(child: _EntityContentSkeleton(compact: compact)),
+    );
+  }
+}
+
+class _EntitiesInitialSkeleton extends StatelessWidget {
+  final bool compact;
+
+  const _EntitiesInitialSkeleton({required this.compact});
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
     final Widget content = compact
-        ? const Column(
+        ? Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _EntityListSkeletonPane(compact: true),
-              SizedBox(height: AppSpacing.lg),
-              _EntityDetailSkeletonPane(compact: true),
+              const _IndexButtonsSkeleton(),
+              const SizedBox(height: AppSpacing.lg),
+              _EntityContentSkeleton(compact: compact),
             ],
           )
-        : const Row(
+        : Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                flex: 4,
-                child: _EntityListSkeletonPane(compact: false),
-              ),
-              SizedBox(width: AppSpacing.lg),
-              Expanded(
-                flex: 6,
-                child: _EntityDetailSkeletonPane(compact: false),
-              ),
+              const _IndexButtonsSkeleton(),
+              const SizedBox(height: AppSpacing.lg),
+              Expanded(child: _EntityContentSkeleton(compact: compact)),
             ],
           );
 
     return Semantics(
-      label: l10n.entitiesRecordsLoadingLabel,
+      label: l10n.entitiesIndicesLoadingLabel,
       child: _Shimmer(child: content),
+    );
+  }
+}
+
+class _IndexButtonsSkeleton extends StatelessWidget {
+  const _IndexButtonsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Wrap(
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.sm,
+      children: [
+        _SkeletonBlock(width: 58, height: 38, radius: 8),
+        _SkeletonBlock(width: 64, height: 38, radius: 8),
+        _SkeletonBlock(width: 56, height: 38, radius: 8),
+        _SkeletonBlock(width: 68, height: 38, radius: 8),
+        _SkeletonBlock(width: 60, height: 38, radius: 8),
+        _SkeletonBlock(width: 62, height: 38, radius: 8),
+        _SkeletonBlock(width: 54, height: 38, radius: 8),
+        _SkeletonBlock(width: 66, height: 38, radius: 8),
+        _SkeletonBlock(width: 58, height: 38, radius: 8),
+        _SkeletonBlock(width: 64, height: 38, radius: 8),
+      ],
+    );
+  }
+}
+
+class _EntityContentSkeleton extends StatelessWidget {
+  final bool compact;
+
+  const _EntityContentSkeleton({required this.compact});
+
+  @override
+  Widget build(BuildContext context) {
+    if (compact) {
+      return const Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _EntityListSkeletonPane(compact: true),
+          SizedBox(height: AppSpacing.lg),
+          _EntityDetailSkeletonPane(compact: true),
+        ],
+      );
+    }
+
+    return const Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(flex: 4, child: _EntityListSkeletonPane(compact: false)),
+        SizedBox(width: AppSpacing.lg),
+        Expanded(flex: 6, child: _EntityDetailSkeletonPane(compact: false)),
+      ],
     );
   }
 }
@@ -564,22 +631,32 @@ class _EntityDetailSkeletonPane extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-          const Row(
-            children: [
-              _SkeletonBlock(width: 120, height: 36, radius: 8),
-              SizedBox(width: AppSpacing.sm),
-              _SkeletonBlock(width: 84, height: 36, radius: 8),
-              SizedBox(width: AppSpacing.sm),
-              _SkeletonBlock(width: 88, height: 36, radius: 8),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
+          const _EntityDetailsTabs(),
+          const SizedBox(height: AppSpacing.md),
           if (compact) ...[
             const _EntityDetailMapSkeleton(),
           ] else ...[
             Expanded(child: const _EntityDetailMapSkeleton()),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _EntityDetailSkeleton extends StatelessWidget {
+  final bool compact;
+
+  const _EntityDetailSkeleton({required this.compact});
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+
+    return Semantics(
+      label: l10n.entitiesRecordsLoadingLabel,
+      child: _Shimmer(
+        child: _EntityDetailSkeletonPane(compact: compact),
       ),
     );
   }
@@ -879,56 +956,63 @@ class _EntityDetailsBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
     final _PrimaryOccurrenceSlots primaryOccurrenceSlots =
         _primaryOccurrenceSlotsFor(episodes);
     final _EpisodeSlotRange appearanceRange =
         primaryOccurrenceSlots.appearanceRange;
 
-    return DefaultTabController(
-      length: 3,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            labelColor: AppColors.ink,
-            indicatorColor: AppColors.accent,
-            dividerColor: AppColors.border,
-            labelStyle: Theme.of(context).textTheme.labelLarge,
-            tabs: [
-              Tab(text: l10n.entitiesAppearanceMapTitle),
-              Tab(text: l10n.entitiesTrophiesTabTitle),
-              Tab(text: l10n.entitiesAnalysisTabTitle),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _EntityDetailsTabs(),
+        const SizedBox(height: AppSpacing.md),
+        Expanded(
+          child: TabBarView(
+            children: [
+              _AppearanceMapTab(
+                episodes: episodes,
+                showAllEpisodes: showAllEpisodes,
+                onShowAllEpisodesChanged: onShowAllEpisodesChanged,
+                appearanceRange: appearanceRange,
+                primaryOccurrenceSlots: primaryOccurrenceSlots,
+              ),
+              _TrophiesTab(
+                entity: entity,
+                entities: entities,
+                episodes: episodes,
+                primaryOccurrenceSlots: primaryOccurrenceSlots,
+              ),
+              _AnalysisTab(
+                episodes: episodes,
+                primaryOccurrenceSlots: primaryOccurrenceSlots,
+              ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
-          Expanded(
-            child: TabBarView(
-              children: [
-                _AppearanceMapTab(
-                  episodes: episodes,
-                  showAllEpisodes: showAllEpisodes,
-                  onShowAllEpisodesChanged: onShowAllEpisodesChanged,
-                  appearanceRange: appearanceRange,
-                  primaryOccurrenceSlots: primaryOccurrenceSlots,
-                ),
-                _TrophiesTab(
-                  entity: entity,
-                  entities: entities,
-                  episodes: episodes,
-                  primaryOccurrenceSlots: primaryOccurrenceSlots,
-                ),
-                _AnalysisTab(
-                  episodes: episodes,
-                  primaryOccurrenceSlots: primaryOccurrenceSlots,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
+    );
+  }
+}
+
+class _EntityDetailsTabs extends StatelessWidget {
+  const _EntityDetailsTabs();
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+
+    return TabBar(
+      isScrollable: true,
+      tabAlignment: TabAlignment.start,
+      labelColor: AppColors.ink,
+      indicatorColor: AppColors.accent,
+      dividerColor: AppColors.border,
+      labelStyle: Theme.of(context).textTheme.labelLarge,
+      tabs: [
+        Tab(text: l10n.entitiesAppearanceMapTitle),
+        Tab(text: l10n.entitiesTrophiesTabTitle),
+        Tab(text: l10n.entitiesAnalysisTabTitle),
+      ],
     );
   }
 }
@@ -3150,33 +3234,6 @@ String _episodeKeyForAppearance(EpisodeOut appearance) {
     appearance.episode.seasonNumber,
     appearance.episode.episodeNumber,
   );
-}
-
-class _LoadingState extends StatelessWidget {
-  final String label;
-
-  const _LoadingState({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(strokeWidth: 2.5),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(label, style: Theme.of(context).textTheme.bodyMedium),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _EmptyState extends StatelessWidget {

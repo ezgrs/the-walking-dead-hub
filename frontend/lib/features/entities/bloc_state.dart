@@ -46,6 +46,17 @@ class EntitiesInitial extends EntitiesLoadSuccessBase {
   });
 }
 
+class EpisodesLoadInProgress extends EntitiesLoadSuccessBase {
+  final int selectedEntityId;
+
+  const EpisodesLoadInProgress({
+    required super.indices,
+    required super.index,
+    required super.entities,
+    required this.selectedEntityId,
+  });
+}
+
 class EntitySelectedInitial extends EntitiesLoadSuccessBase {
   final EntityOut stats;
 

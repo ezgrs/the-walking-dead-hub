@@ -52,10 +52,27 @@ class EntitiesBloc extends Bloc<EntitiesEvent, EntitiesState> {
     });
     on<IndexLoadFailed>((event, emit) {});
     on<EpisodesLoadRequested>((event, emit) {
-      repository
-          .readEntity(event.entityId)
-          .then((data) => add(EpisodesLoadSucceeded(stats: data!)))
-          .catchError((e) => add(EpisodesLoadFailed(error: e)));
+      final EntitiesState state = this.state;
+      switch (state) {
+        case EntitiesLoadSuccessBase():
+          emit(
+            EpisodesLoadInProgress(
+              indices: state.indices,
+              index: state.index,
+              entities: state.entities,
+              selectedEntityId: event.entityId,
+            ),
+          );
+          repository
+              .readEntity(event.entityId)
+              .then((data) => add(EpisodesLoadSucceeded(stats: data!)))
+              .catchError((e) => add(EpisodesLoadFailed(error: e)));
+          return;
+        case IndicesLoadInProgress():
+        case IndicesInitial():
+        case EntitiesLoadInProgress():
+          return;
+      }
     });
     on<EpisodesLoadSucceeded>((event, emit) {
       final EntitiesState state = this.state;
