@@ -571,7 +571,7 @@ class _EntityDetailsBody extends StatelessWidget {
         primaryOccurrenceSlots.appearanceRange;
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -585,6 +585,7 @@ class _EntityDetailsBody extends StatelessWidget {
             tabs: [
               Tab(text: l10n.entitiesAppearanceMapTitle),
               Tab(text: l10n.entitiesTrophiesTabTitle),
+              Tab(text: l10n.entitiesAnalysisTabTitle),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
@@ -601,6 +602,10 @@ class _EntityDetailsBody extends StatelessWidget {
                 _TrophiesTab(
                   entity: entity,
                   entities: entities,
+                  episodes: episodes,
+                  primaryOccurrenceSlots: primaryOccurrenceSlots,
+                ),
+                _AnalysisTab(
                   episodes: episodes,
                   primaryOccurrenceSlots: primaryOccurrenceSlots,
                 ),
@@ -1061,6 +1066,438 @@ class _TrophyBadge extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
+      ),
+    );
+  }
+}
+
+class _AnalysisTab extends StatelessWidget {
+  final List<EpisodeOut> episodes;
+  final _PrimaryOccurrenceSlots primaryOccurrenceSlots;
+
+  const _AnalysisTab({
+    required this.episodes,
+    required this.primaryOccurrenceSlots,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final _AnalysisMetrics metrics = _AnalysisMetrics(
+      episodes: episodes,
+      primaryOccurrenceSlots: primaryOccurrenceSlots,
+    );
+    final List<String> notices = metrics.notices(l10n);
+
+    return Scrollbar(
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _AnalysisCoverageCard(metrics: metrics),
+            const SizedBox(height: AppSpacing.md),
+            _AnalysisStatsGrid(metrics: metrics),
+            const SizedBox(height: AppSpacing.md),
+            _AnalysisFormsPanel(metrics: metrics),
+            if (notices.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.md),
+              _AnalysisNoticesPanel(notices: notices),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AnalysisCoverageCard extends StatelessWidget {
+  final _AnalysisMetrics metrics;
+
+  const _AnalysisCoverageCard({required this.metrics});
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final int percentage = (metrics.persistedEpisodeRatio * 100).round();
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.accentSoft,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.insights_rounded,
+                  color: AppColors.accent,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(
+                  l10n.entitiesAnalysisCoverageTitle,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+              ),
+              Text(
+                '$percentage%',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: AppColors.accent,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _AnalysisProgressBar(value: metrics.persistedEpisodeRatio),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            '${metrics.persistedEpisodeCount}/${metrics.totalEpisodeCount} '
+            '${l10n.entitiesAnalysisCoverageValueLabel}',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AnalysisProgressBar extends StatelessWidget {
+  final double value;
+
+  const _AnalysisProgressBar({required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final double normalizedValue = value < 0
+        ? 0
+        : value > 1
+        ? 1
+        : value;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Container(
+          height: 8,
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: SizedBox(
+              width: constraints.maxWidth * normalizedValue,
+              child: Container(color: AppColors.accent),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AnalysisStatsGrid extends StatelessWidget {
+  final _AnalysisMetrics metrics;
+
+  const _AnalysisStatsGrid({required this.metrics});
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final List<_AnalysisMetric> metricItems = [
+      _AnalysisMetric(
+        icon: Icons.first_page_rounded,
+        label: l10n.entitiesAnalysisFirstEverLabel,
+        value: _episodeReference(metrics.firstEverEpisode, l10n),
+      ),
+      _AnalysisMetric(
+        icon: Icons.last_page_rounded,
+        label: l10n.entitiesAnalysisLastEverLabel,
+        value: _episodeReference(metrics.lastEverEpisode, l10n),
+      ),
+      _AnalysisMetric(
+        icon: Icons.play_arrow_rounded,
+        label: l10n.entitiesAnalysisFirstPrimaryLabel,
+        value: _episodeReference(metrics.firstPrimaryEpisode, l10n),
+      ),
+      _AnalysisMetric(
+        icon: Icons.flag_rounded,
+        label: l10n.entitiesAnalysisLastPrimaryLabel,
+        value: _episodeReference(metrics.lastPrimaryEpisode, l10n),
+      ),
+      _AnalysisMetric(
+        icon: Icons.route_rounded,
+        label: l10n.entitiesAnalysisPrimarySpanLabel,
+        value: metrics.primarySpanEpisodeCount == null
+            ? l10n.entitiesAnalysisUnavailableValue
+            : '${metrics.primarySpanEpisodeCount} '
+                  '${l10n.entitiesAnalysisEpisodesValueLabel}',
+      ),
+      _AnalysisMetric(
+        icon: Icons.calendar_view_month_rounded,
+        label: l10n.entitiesAnalysisSeasonsLabel,
+        value: metrics.continuitySeasonCount.toString(),
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final int columns = constraints.maxWidth >= 900
+            ? 3
+            : constraints.maxWidth >= 560
+            ? 2
+            : 1;
+        final double width =
+            (constraints.maxWidth - (AppSpacing.md * (columns - 1))) /
+            columns;
+
+        return Wrap(
+          spacing: AppSpacing.md,
+          runSpacing: AppSpacing.md,
+          children: metricItems
+              .map(
+                (metric) => SizedBox(
+                  width: width,
+                  child: _AnalysisMetricCard(metric: metric),
+                ),
+              )
+              .toList(),
+        );
+      },
+    );
+  }
+}
+
+class _AnalysisMetric {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _AnalysisMetric({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+}
+
+class _AnalysisMetricCard extends StatelessWidget {
+  final _AnalysisMetric metric;
+
+  const _AnalysisMetricCard({required this.metric});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 92),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceMuted,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(metric.icon, size: 18, color: AppColors.accent),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  metric.label,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelMedium?.copyWith(color: AppColors.muted),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  metric.value,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AnalysisFormsPanel extends StatelessWidget {
+  final _AnalysisMetrics metrics;
+
+  const _AnalysisFormsPanel({required this.metrics});
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.entitiesAnalysisFormsTitle,
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: _knownAppearanceForms.map((form) {
+              return _AnalysisFormChip(
+                active: metrics.hasAppearanceForm(form),
+                label: _appearanceFormLabel(form, l10n) ?? form,
+                tone: _AppearanceTone.secondaryForm(form),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AnalysisFormChip extends StatelessWidget {
+  final bool active;
+  final String label;
+  final _AppearanceTone tone;
+
+  const _AnalysisFormChip({
+    required this.active,
+    required this.label,
+    required this.tone,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final Color foreground = active ? tone.foreground : AppColors.muted;
+    final Color border = active ? tone.border : AppColors.border;
+    final Color background = active ? tone.background : AppColors.surfaceMuted;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            active ? tone.icon ?? Icons.check_circle_rounded : Icons.circle_outlined,
+            size: 16,
+            color: foreground,
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.labelMedium?.copyWith(color: foreground),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AnalysisNoticesPanel extends StatelessWidget {
+  final List<String> notices;
+
+  const _AnalysisNoticesPanel({required this.notices});
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7E8),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE3B341)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.warning_amber_rounded,
+                color: Color(0xFF8A5A00),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                l10n.entitiesAnalysisNoticesTitle,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: const Color(0xFF8A5A00),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          ...notices.map(
+            (notice) => Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.circle_rounded,
+                    size: 7,
+                    color: Color(0xFF8A5A00),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      notice,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1833,6 +2270,160 @@ class _TrophyTierStyle {
   }
 }
 
+class _AnalysisMetrics {
+  final List<EpisodeOut> episodes;
+  final _PrimaryOccurrenceSlots primaryOccurrenceSlots;
+
+  _AnalysisMetrics({
+    required this.episodes,
+    required this.primaryOccurrenceSlots,
+  });
+
+  late final List<EpisodeOut> sortedEpisodes = episodes.toList()
+    ..sort((a, b) {
+      final int aIndex = _episodeAbsoluteIndex(
+        a.episode.seasonNumber,
+        a.episode.episodeNumber,
+      );
+      final int bIndex = _episodeAbsoluteIndex(
+        b.episode.seasonNumber,
+        b.episode.episodeNumber,
+      );
+      return aIndex.compareTo(bIndex);
+    });
+
+  late final Set<String> appearanceEpisodeKeys = {
+    for (final EpisodeOut appearance in episodes)
+      _episodeKeyForAppearance(appearance),
+  };
+
+  late final Set<String> continuityEpisodeKeys = _continuityEpisodeKeysFor(
+    episodes,
+    primaryOccurrenceSlots,
+  );
+
+  late final Set<String> appearanceForms = {
+    for (final EpisodeOut appearance in episodes)
+      if (_normalizedAppearanceForm(appearance) != null)
+        _normalizedAppearanceForm(appearance)!,
+  };
+
+  int get totalEpisodeCount {
+    return {..._allKnownEpisodeKeys, ...appearanceEpisodeKeys}.length;
+  }
+
+  int get persistedEpisodeCount => continuityEpisodeKeys.length;
+
+  double get persistedEpisodeRatio {
+    if (totalEpisodeCount == 0) {
+      return 0;
+    }
+
+    final double ratio = persistedEpisodeCount / totalEpisodeCount;
+    return ratio > 1 ? 1 : ratio;
+  }
+
+  Episode? get firstEverEpisode {
+    return sortedEpisodes.isEmpty ? null : sortedEpisodes.first.episode;
+  }
+
+  Episode? get lastEverEpisode {
+    return sortedEpisodes.isEmpty ? null : sortedEpisodes.last.episode;
+  }
+
+  Episode? get firstPrimaryEpisode => _primaryInitialOccurrence?.episode;
+
+  Episode? get lastPrimaryEpisode => _primaryFinalOccurrence?.episode;
+
+  int? get primarySpanEpisodeCount {
+    final int? initialIndex = primaryOccurrenceSlots.initialIndex;
+    final int? finalIndex = primaryOccurrenceSlots.finalIndex;
+    if (initialIndex == null || finalIndex == null || finalIndex < initialIndex) {
+      return null;
+    }
+
+    return finalIndex - initialIndex + 1;
+  }
+
+  int get continuitySeasonCount {
+    final Set<int> seasons = {
+      for (final EpisodeOut appearance in episodes) appearance.episode.seasonNumber,
+    };
+
+    for (final int season in _availableSeasons) {
+      final int episodeCount = _episodeCountsBySeason[season] ?? 0;
+      for (int episode = 1; episode <= episodeCount; episode++) {
+        if (continuityEpisodeKeys.contains(_episodeKey(season, episode))) {
+          seasons.add(season);
+          break;
+        }
+      }
+    }
+
+    return seasons.length;
+  }
+
+  bool hasAppearanceForm(String formType) {
+    return appearanceForms.contains(formType);
+  }
+
+  List<String> notices(AppLocalizations l10n) {
+    final List<String> result = [];
+    if (episodes.isEmpty) {
+      result.add(l10n.entitiesAnalysisNoticeNoAppearances);
+    }
+
+    if (primaryOccurrenceSlots.initialKey != null &&
+        primaryOccurrenceSlots.finalKey == null) {
+      result.add(l10n.entitiesAnalysisNoticeInitialWithoutFinal);
+    }
+
+    if (primaryOccurrenceSlots.initialKey == null && _lastMarkerCount > 0) {
+      result.add(l10n.entitiesAnalysisNoticeFinalWithoutInitial);
+    }
+
+    if (_firstMarkerCount > 1) {
+      result.add(l10n.entitiesAnalysisNoticeMultipleFirst);
+    }
+
+    if (_lastMarkerCount > 1) {
+      result.add(l10n.entitiesAnalysisNoticeMultipleLast);
+    }
+
+    return result;
+  }
+
+  int get _firstMarkerCount {
+    return episodes.where((appearance) {
+      return appearance.appearanceTypeLabel.trim().toLowerCase() == 'first';
+    }).length;
+  }
+
+  int get _lastMarkerCount {
+    return episodes.where(_isFinalPrimaryOccurrence).length;
+  }
+
+  EpisodeOut? get _primaryInitialOccurrence {
+    for (final EpisodeOut appearance in episodes) {
+      if (primaryOccurrenceSlots.isInitial(appearance)) {
+        return appearance;
+      }
+    }
+
+    return null;
+  }
+
+  EpisodeOut? get _primaryFinalOccurrence {
+    for (final EpisodeOut appearance in episodes) {
+      if (primaryOccurrenceSlots.isFinal(appearance)) {
+        return appearance;
+      }
+    }
+
+    return null;
+  }
+}
+
 class _TrophyContext {
   final Entity entity;
   final List<Entity> entities;
@@ -1851,7 +2442,10 @@ class _TrophyContext {
       _episodeKeyForAppearance(appearance),
   };
 
-  late final Set<String> continuityEpisodeKeys = _continuityEpisodeKeys();
+  late final Set<String> continuityEpisodeKeys = _continuityEpisodeKeysFor(
+    episodes,
+    primaryOccurrenceSlots,
+  );
 
   late final List<EpisodeOut> sortedEpisodes = episodes.toList()
     ..sort((a, b) {
@@ -2008,24 +2602,6 @@ class _TrophyContext {
     return null;
   }
 
-  Set<String> _continuityEpisodeKeys() {
-    final Set<String> keys = {...appearanceEpisodeKeys};
-    final _EpisodeSlotRange range = primaryOccurrenceSlots.appearanceRange;
-    if (!range.isValid) {
-      return keys;
-    }
-
-    for (final int season in _availableSeasons) {
-      final int episodeCount = _episodeCountsBySeason[season] ?? 0;
-      for (int episode = 1; episode <= episodeCount; episode++) {
-        if (range.contains(season, episode)) {
-          keys.add(_episodeKey(season, episode));
-        }
-      }
-    }
-
-    return keys;
-  }
 }
 
 class _EpisodeSlotRange {
@@ -2216,6 +2792,40 @@ List<String> get _allKnownEpisodeKeys {
           episode++)
         _episodeKey(season, episode),
   ];
+}
+
+Set<String> _continuityEpisodeKeysFor(
+  List<EpisodeOut> episodes,
+  _PrimaryOccurrenceSlots primaryOccurrenceSlots,
+) {
+  final Set<String> keys = {
+    for (final EpisodeOut appearance in episodes)
+      _episodeKeyForAppearance(appearance),
+  };
+  final _EpisodeSlotRange range = primaryOccurrenceSlots.appearanceRange;
+  if (!range.isValid) {
+    return keys;
+  }
+
+  for (final int season in _availableSeasons) {
+    final int episodeCount = _episodeCountsBySeason[season] ?? 0;
+    for (int episode = 1; episode <= episodeCount; episode++) {
+      if (range.contains(season, episode)) {
+        keys.add(_episodeKey(season, episode));
+      }
+    }
+  }
+
+  return keys;
+}
+
+String _episodeReference(Episode? episode, AppLocalizations l10n) {
+  if (episode == null) {
+    return l10n.entitiesAnalysisUnavailableValue;
+  }
+
+  return '${l10n.entitiesSeasonShortLabel}${episode.seasonNumber} '
+      '${l10n.entitiesEpisodeShortLabel}${episode.episodeNumber}';
 }
 
 String _episodeKey(int season, int episode) => '$season:$episode';
