@@ -537,7 +537,10 @@ class _EntityDetailsBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
-    final _EpisodeSlotRange appearanceRange = _appearanceRangeFor(episodes);
+    final _MainOccurrenceSlots mainOccurrenceSlots =
+        _mainOccurrenceSlotsFor(episodes);
+    final _EpisodeSlotRange appearanceRange =
+        mainOccurrenceSlots.appearanceRange;
 
     return DefaultTabController(
       length: 1,
@@ -577,6 +580,7 @@ class _EntityDetailsBody extends StatelessWidget {
                 episodes: episodes,
                 showAllEpisodes: showAllEpisodes,
                 appearanceRange: appearanceRange,
+                mainOccurrenceSlots: mainOccurrenceSlots,
               ),
             ],
           ),
@@ -604,9 +608,14 @@ class _AppearanceLegendButton extends StatelessWidget {
             builder: (context) => AlertDialog(
               title: Text(l10n.entitiesAppearanceLegendTitle),
               content: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 360),
-                child: _AppearanceLegend(
-                  showAppearanceRange: showAppearanceRange,
+                constraints: const BoxConstraints(
+                  maxWidth: 360,
+                  maxHeight: 420,
+                ),
+                child: SingleChildScrollView(
+                  child: _AppearanceLegend(
+                    showAppearanceRange: showAppearanceRange,
+                  ),
                 ),
               ),
               actions: [
@@ -707,12 +716,64 @@ class _AppearanceLegend extends StatelessWidget {
           icon: Icons.circle_rounded,
           label: l10n.entitiesOtherAppearanceLabel,
         ),
+        _formLegendItem(
+          _AppearanceTone.extraForm('alive'),
+          l10n.entitiesAppearanceFormAliveLabel,
+        ),
+        _formLegendItem(
+          _AppearanceTone.extraForm('corpse'),
+          l10n.entitiesAppearanceFormCorpseLabel,
+        ),
+        _formLegendItem(
+          _AppearanceTone.extraForm('zombified'),
+          l10n.entitiesAppearanceFormZombifiedLabel,
+        ),
+        _formLegendItem(
+          _AppearanceTone.extraForm('voiceOnly'),
+          l10n.entitiesAppearanceFormVoiceOnlyLabel,
+        ),
+        _formLegendItem(
+          _AppearanceTone.extraForm('physically'),
+          l10n.entitiesAppearanceFormPhysicallyLabel,
+        ),
+        _formLegendItem(
+          _AppearanceTone.extraForm('videoTape'),
+          l10n.entitiesAppearanceFormVideoTapeLabel,
+        ),
+        _formLegendItem(
+          _AppearanceTone.extraForm('flashback'),
+          l10n.entitiesAppearanceFormFlashbackLabel,
+        ),
+        _formLegendItem(
+          _AppearanceTone.extraForm('photograph'),
+          l10n.entitiesAppearanceFormPhotographLabel,
+        ),
+        _formLegendItem(
+          _AppearanceTone.extraForm('hallucination'),
+          l10n.entitiesAppearanceFormHallucinationLabel,
+        ),
+        _formLegendItem(
+          _AppearanceTone.extraForm('dream'),
+          l10n.entitiesAppearanceFormDreamLabel,
+        ),
+        _formLegendItem(
+          _AppearanceTone.extraForm('ultrasound'),
+          l10n.entitiesAppearanceFormUltrasoundLabel,
+        ),
         _LegendItem(
           color: AppColors.border,
           icon: Icons.circle_outlined,
           label: l10n.entitiesNoAppearanceLabel,
         ),
       ],
+    );
+  }
+
+  Widget _formLegendItem(_AppearanceTone tone, String label) {
+    return _LegendItem(
+      color: tone.foreground,
+      icon: tone.icon ?? Icons.circle_rounded,
+      label: label,
     );
   }
 }
@@ -745,11 +806,13 @@ class _AppearanceMap extends StatelessWidget {
   final List<EpisodeOut> episodes;
   final bool showAllEpisodes;
   final _EpisodeSlotRange appearanceRange;
+  final _MainOccurrenceSlots mainOccurrenceSlots;
 
   const _AppearanceMap({
     required this.episodes,
     required this.showAllEpisodes,
     required this.appearanceRange,
+    required this.mainOccurrenceSlots,
   });
 
   @override
@@ -776,6 +839,7 @@ class _AppearanceMap extends StatelessWidget {
                   episodeNumbers: _episodeNumbersForSeason(season),
                   appearancesBySlot: appearancesBySlot,
                   appearanceRange: appearanceRange,
+                  mainOccurrenceSlots: mainOccurrenceSlots,
                 ),
               )
               .expand((child) => [child, const SizedBox(height: AppSpacing.md)])
@@ -839,12 +903,14 @@ class _SeasonAppearanceRow extends StatelessWidget {
   final List<int> episodeNumbers;
   final Map<String, EpisodeOut> appearancesBySlot;
   final _EpisodeSlotRange appearanceRange;
+  final _MainOccurrenceSlots mainOccurrenceSlots;
 
   const _SeasonAppearanceRow({
     required this.season,
     required this.episodeNumbers,
     required this.appearancesBySlot,
     required this.appearanceRange,
+    required this.mainOccurrenceSlots,
   });
 
   @override
@@ -891,6 +957,7 @@ class _SeasonAppearanceRow extends StatelessWidget {
                       season,
                       episodeNumber,
                     ),
+                    mainOccurrenceSlots: mainOccurrenceSlots,
                   ),
                 )
                 .toList(),
@@ -906,12 +973,14 @@ class _EpisodeAppearanceCell extends StatelessWidget {
   final int episodeNumber;
   final EpisodeOut? appearance;
   final bool inAppearanceRange;
+  final _MainOccurrenceSlots mainOccurrenceSlots;
 
   const _EpisodeAppearanceCell({
     required this.season,
     required this.episodeNumber,
     required this.appearance,
     required this.inAppearanceRange,
+    required this.mainOccurrenceSlots,
   });
 
   @override
@@ -919,13 +988,17 @@ class _EpisodeAppearanceCell extends StatelessWidget {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
     final EpisodeOut? appearance = this.appearance;
     final _AppearanceTone tone = _AppearanceTone.from(
-      appearance?.appearanceTypeLabel,
+      appearance,
       inAppearanceRange: inAppearanceRange,
-      hasAppearance: appearance != null,
+      mainOccurrenceSlots: mainOccurrenceSlots,
     );
     final _AppearanceMilestone? milestone = appearance == null
         ? null
-        : _AppearanceMilestone.from(appearance.appearanceTypeLabel, l10n);
+        : _AppearanceMilestone.from(
+            appearance,
+            l10n,
+            mainOccurrenceSlots: mainOccurrenceSlots,
+          );
 
     final Widget cell = Container(
       width: 34,
@@ -972,10 +1045,7 @@ class _EpisodeAppearanceCell extends StatelessWidget {
     _AppearanceMilestone? milestone,
   ) {
     final String typeLabel =
-        milestone?.label ??
-        (inAppearanceRange
-            ? l10n.entitiesAppearanceRangeLabel
-            : l10n.entitiesOtherAppearanceLabel);
+        milestone?.label ?? l10n.entitiesOtherAppearanceLabel;
     final String? translatedFormLabel = _appearanceFormLabel(
       appearance.appearanceFormTypeLabel,
       l10n,
@@ -1002,22 +1072,123 @@ class _AppearanceTone {
   });
 
   factory _AppearanceTone.from(
-    String? value, {
+    EpisodeOut? appearance, {
     required bool inAppearanceRange,
-    required bool hasAppearance,
+    required _MainOccurrenceSlots mainOccurrenceSlots,
   }) {
-    return switch (value?.trim().toLowerCase()) {
-      'first' => const _AppearanceTone(
+    if (appearance == null) {
+      return inAppearanceRange
+          ? _AppearanceTone.lifeRange()
+          : const _AppearanceTone(
+              background: AppColors.surface,
+              border: AppColors.border,
+              foreground: AppColors.muted,
+            );
+    }
+
+    final String typeLabel = appearance.appearanceTypeLabel.trim().toLowerCase();
+
+    if (mainOccurrenceSlots.isInitial(appearance)) {
+      return const _AppearanceTone(
         background: Color(0xFFE3F4E8),
         border: Color(0xFF2E7D32),
         foreground: Color(0xFF2E7D32),
         icon: Icons.play_arrow_rounded,
-      ),
-      'last' => const _AppearanceTone(
+      );
+    }
+
+    if (mainOccurrenceSlots.isFinal(appearance)) {
+      return const _AppearanceTone(
         background: Color(0xFFFBE4E2),
         border: Color(0xFFC2413A),
         foreground: Color(0xFFC2413A),
         icon: Icons.flag_rounded,
+      );
+    }
+
+    if (typeLabel == 'only') {
+      return const _AppearanceTone(
+        background: Color(0xFFE4EDFF),
+        border: Color(0xFF2563EB),
+        foreground: Color(0xFF2563EB),
+        icon: Icons.looks_one_rounded,
+      );
+    }
+
+    if (!mainOccurrenceSlots.hasInitial) {
+      return _AppearanceTone.extraForm(appearance.appearanceFormTypeLabel);
+    }
+
+    return _AppearanceTone.extraForm(appearance.appearanceFormTypeLabel);
+  }
+
+  factory _AppearanceTone.extraForm(String? value) {
+    return switch (value?.trim().toLowerCase()) {
+      'alive' => const _AppearanceTone(
+        background: Color(0xFFE7F5E8),
+        border: Color(0xFF2F7D3C),
+        foreground: Color(0xFF1F6B2D),
+        icon: Icons.favorite_rounded,
+      ),
+      'corpse' => const _AppearanceTone(
+        background: Color(0xFFE7E5E4),
+        border: Color(0xFF57534E),
+        foreground: Color(0xFF44403C),
+        icon: Icons.block_rounded,
+      ),
+      'zombified' => const _AppearanceTone(
+        background: Color(0xFFDDEDE4),
+        border: Color(0xFF17633A),
+        foreground: Color(0xFF0F4C2F),
+        icon: Icons.sync_rounded,
+      ),
+      'voiceonly' => const _AppearanceTone(
+        background: Color(0xFFF1E8FF),
+        border: Color(0xFF7C3AED),
+        foreground: Color(0xFF6D28D9),
+        icon: Icons.record_voice_over_rounded,
+      ),
+      'physically' => const _AppearanceTone(
+        background: Color(0xFFE8EEF6),
+        border: Color(0xFF475569),
+        foreground: Color(0xFF334155),
+        icon: Icons.person_rounded,
+      ),
+      'videotape' => const _AppearanceTone(
+        background: Color(0xFFFFF0CC),
+        border: Color(0xFFD97706),
+        foreground: Color(0xFFB45309),
+        icon: Icons.videocam_rounded,
+      ),
+      'flashback' => const _AppearanceTone(
+        background: Color(0xFFDFF7F3),
+        border: Color(0xFF0F766E),
+        foreground: Color(0xFF0F766E),
+        icon: Icons.history_rounded,
+      ),
+      'photograph' => const _AppearanceTone(
+        background: Color(0xFFE0F2FE),
+        border: Color(0xFF0284C7),
+        foreground: Color(0xFF0369A1),
+        icon: Icons.photo_camera_rounded,
+      ),
+      'hallucination' => const _AppearanceTone(
+        background: Color(0xFFFCE7F3),
+        border: Color(0xFFDB2777),
+        foreground: Color(0xFFBE185D),
+        icon: Icons.blur_on_rounded,
+      ),
+      'dream' => const _AppearanceTone(
+        background: Color(0xFFEDE9FE),
+        border: Color(0xFF6D28D9),
+        foreground: Color(0xFF5B21B6),
+        icon: Icons.nights_stay_rounded,
+      ),
+      'ultrasound' => const _AppearanceTone(
+        background: Color(0xFFFFE4E6),
+        border: Color(0xFFE11D48),
+        foreground: Color(0xFFBE123C),
+        icon: Icons.graphic_eq_rounded,
       ),
       'only' => const _AppearanceTone(
         background: Color(0xFFE4EDFF),
@@ -1025,29 +1196,20 @@ class _AppearanceTone {
         foreground: Color(0xFF2563EB),
         icon: Icons.looks_one_rounded,
       ),
-      _ when inAppearanceRange => _AppearanceTone.lifeRange(
-        hasAppearance: hasAppearance,
-      ),
-      _ when hasAppearance => const _AppearanceTone(
+      _ => const _AppearanceTone(
         background: AppColors.surfaceMuted,
         border: AppColors.border,
         foreground: AppColors.ink,
         icon: Icons.circle_rounded,
       ),
-      _ => const _AppearanceTone(
-        background: AppColors.surface,
-        border: AppColors.border,
-        foreground: AppColors.muted,
-      ),
     };
   }
 
-  factory _AppearanceTone.lifeRange({required bool hasAppearance}) {
-    return _AppearanceTone(
-      background: const Color(0xFFFFF4D6),
-      border: const Color(0xFFE3B341),
-      foreground: const Color(0xFF8A5A00),
-      icon: hasAppearance ? Icons.circle_rounded : null,
+  factory _AppearanceTone.lifeRange() {
+    return const _AppearanceTone(
+      background: Color(0xFFFFF4D6),
+      border: Color(0xFFE3B341),
+      foreground: Color(0xFF8A5A00),
     );
   }
 }
@@ -1057,13 +1219,23 @@ class _AppearanceMilestone {
 
   const _AppearanceMilestone({required this.label});
 
-  static _AppearanceMilestone? from(String value, AppLocalizations l10n) {
-    return switch (value.trim().toLowerCase()) {
-      'first' => _AppearanceMilestone(label: l10n.entitiesFirstAppearanceLabel),
-      'last' => _AppearanceMilestone(label: l10n.entitiesLastAppearanceLabel),
-      'only' => _AppearanceMilestone(label: l10n.entitiesOnlyAppearanceLabel),
-      _ => null,
-    };
+  static _AppearanceMilestone? from(
+    EpisodeOut appearance,
+    AppLocalizations l10n, {
+    required _MainOccurrenceSlots mainOccurrenceSlots,
+  }) {
+    if (mainOccurrenceSlots.isInitial(appearance)) {
+      return _AppearanceMilestone(label: l10n.entitiesFirstAppearanceLabel);
+    }
+    if (mainOccurrenceSlots.isFinal(appearance)) {
+      return _AppearanceMilestone(label: l10n.entitiesLastAppearanceLabel);
+    }
+
+    if (appearance.appearanceTypeLabel.trim().toLowerCase() == 'only') {
+      return _AppearanceMilestone(label: l10n.entitiesOnlyAppearanceLabel);
+    }
+
+    return null;
   }
 }
 
@@ -1126,7 +1298,29 @@ class _EpisodeSlotRange {
   }
 }
 
-_EpisodeSlotRange _appearanceRangeFor(List<EpisodeOut> episodes) {
+class _MainOccurrenceSlots {
+  final String? initialKey;
+  final String? finalKey;
+  final _EpisodeSlotRange appearanceRange;
+
+  const _MainOccurrenceSlots({
+    required this.initialKey,
+    required this.finalKey,
+    required this.appearanceRange,
+  });
+
+  bool get hasInitial => initialKey != null;
+
+  bool isInitial(EpisodeOut appearance) {
+    return initialKey == _episodeKeyForAppearance(appearance);
+  }
+
+  bool isFinal(EpisodeOut appearance) {
+    return finalKey == _episodeKeyForAppearance(appearance);
+  }
+}
+
+_MainOccurrenceSlots _mainOccurrenceSlotsFor(List<EpisodeOut> episodes) {
   final List<EpisodeOut> sorted = episodes.toList()
     ..sort((a, b) {
       final int aIndex = _episodeAbsoluteIndex(
@@ -1140,43 +1334,57 @@ _EpisodeSlotRange _appearanceRangeFor(List<EpisodeOut> episodes) {
       return aIndex.compareTo(bIndex);
     });
 
-  Episode? first;
+  EpisodeOut? initialOccurrence;
   for (final EpisodeOut appearance in sorted) {
     if (_isInitialMainOccurrence(appearance)) {
-      first = appearance.episode;
+      initialOccurrence = appearance;
       break;
     }
   }
 
-  if (first == null) {
-    return _EpisodeSlotRange.empty();
+  if (initialOccurrence == null) {
+    return _MainOccurrenceSlots(
+      initialKey: null,
+      finalKey: null,
+      appearanceRange: _EpisodeSlotRange.empty(),
+    );
   }
 
-  final int firstIndex = _episodeAbsoluteIndex(
-    first.seasonNumber,
-    first.episodeNumber,
+  final int initialIndex = _episodeAbsoluteIndex(
+    initialOccurrence.episode.seasonNumber,
+    initialOccurrence.episode.episodeNumber,
   );
-  Episode? last;
+
+  EpisodeOut? finalOccurrence;
   for (final EpisodeOut appearance in sorted) {
     final int index = _episodeAbsoluteIndex(
       appearance.episode.seasonNumber,
       appearance.episode.episodeNumber,
     );
-    final bool isLast =
-        appearance.appearanceTypeLabel.trim().toLowerCase() == 'last';
-    if (index > firstIndex && isLast) {
-      last = appearance.episode;
+    if (index > initialIndex && _isFinalMainOccurrence(appearance)) {
+      finalOccurrence = appearance;
       break;
     }
   }
 
-  if (last == null) {
-    return _EpisodeSlotRange.empty();
-  }
+  final int? finalIndex = finalOccurrence == null
+      ? null
+      : _episodeAbsoluteIndex(
+          finalOccurrence.episode.seasonNumber,
+          finalOccurrence.episode.episodeNumber,
+        );
 
-  return _EpisodeSlotRange(
-    start: firstIndex,
-    end: _episodeAbsoluteIndex(last.seasonNumber, last.episodeNumber),
+  final _EpisodeSlotRange appearanceRange =
+      finalIndex != null && finalIndex > initialIndex
+      ? _EpisodeSlotRange(start: initialIndex, end: finalIndex)
+      : _EpisodeSlotRange.empty();
+
+  return _MainOccurrenceSlots(
+    initialKey: _episodeKeyForAppearance(initialOccurrence),
+    finalKey: finalOccurrence == null
+        ? null
+        : _episodeKeyForAppearance(finalOccurrence),
+    appearanceRange: appearanceRange,
   );
 }
 
@@ -1188,6 +1396,10 @@ bool _isInitialMainOccurrence(EpisodeOut appearance) {
       .toLowerCase();
 
   return isFirst && (formType == null || formType == 'physically');
+}
+
+bool _isFinalMainOccurrence(EpisodeOut appearance) {
+  return appearance.appearanceTypeLabel.trim().toLowerCase() == 'last';
 }
 
 String _normalizeSearchText(String value) {
@@ -1218,6 +1430,13 @@ List<int> get _availableSeasons {
 }
 
 String _episodeKey(int season, int episode) => '$season:$episode';
+
+String _episodeKeyForAppearance(EpisodeOut appearance) {
+  return _episodeKey(
+    appearance.episode.seasonNumber,
+    appearance.episode.episodeNumber,
+  );
+}
 
 class _LoadingState extends StatelessWidget {
   final String label;
