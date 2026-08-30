@@ -54,8 +54,32 @@ class AppColors {
   const AppColors._();
 }
 
-class LocaleController extends ValueNotifier<Locale> {
-  LocaleController(super.value);
+class LocaleController extends ValueNotifier<Locale?> {
+  LocaleController() : super(null);
+
+  static Locale resolve(Locale? locale) {
+    if (locale == null) {
+      return AppLocalizations.supportedLocales.first;
+    }
+
+    for (final Locale supportedLocale in AppLocalizations.supportedLocales) {
+      if (supportedLocale.languageCode == locale.languageCode) {
+        return supportedLocale;
+      }
+    }
+
+    return AppLocalizations.supportedLocales.first;
+  }
+
+  static Locale nextAfter(Locale locale) {
+    final Locale resolvedLocale = resolve(locale);
+    final int currentIndex = AppLocalizations.supportedLocales.indexOf(
+      resolvedLocale,
+    );
+
+    return AppLocalizations.supportedLocales[(currentIndex + 1) %
+        AppLocalizations.supportedLocales.length];
+  }
 }
 
 class MainApp extends StatelessWidget {
@@ -113,7 +137,7 @@ class MainApp extends StatelessWidget {
           ),
         ),
         ChangeNotifierProvider<LocaleController>(
-          create: (_) => LocaleController(AppLocalizations.supportedLocales[0]),
+          create: (_) => LocaleController(),
         ),
       ],
       builder: (context, _) {
@@ -260,6 +284,8 @@ class MainApp extends StatelessWidget {
             return child;
           },
           supportedLocales: AppLocalizations.supportedLocales,
+          localeResolutionCallback: (locale, _) =>
+              LocaleController.resolve(locale),
           locale: context.watch<LocaleController>().value,
           routerConfig: context.read<GoRouter>(),
         );

@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:responsive_framework/responsive_framework.dart' as rf;
 
-import '../l10n/app_localizations.dart';
 import '../main.dart';
 
 class HeaderWidget extends StatelessWidget {
@@ -32,11 +31,10 @@ class HeaderWidget extends StatelessWidget {
     );
     final Widget localizationWidget = Consumer<LocaleController>(
       builder: (context, localeController, _) {
-        final Locale locale = localeController.value;
-        final int index = AppLocalizations.supportedLocales.indexOf(locale);
-        final Locale nextLocale =
-            AppLocalizations.supportedLocales[(index + 1) %
-                AppLocalizations.supportedLocales.length];
+        final Locale locale = LocaleController.resolve(
+          localeController.value ?? Localizations.localeOf(context),
+        );
+        final Locale nextLocale = LocaleController.nextAfter(locale);
 
         return OutlinedButton.icon(
           onPressed: () => localeController.value = nextLocale,
