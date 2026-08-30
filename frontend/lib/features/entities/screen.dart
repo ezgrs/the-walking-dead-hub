@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:responsive_framework/responsive_framework.dart' as rf;
 import 'package:url_launcher/url_launcher.dart';
 
@@ -234,6 +235,20 @@ class _PageTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
+        IconButton(
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+          onPressed: () {
+            final NavigatorState navigator = Navigator.of(context);
+            if (navigator.canPop()) {
+              navigator.pop();
+              return;
+            }
+
+            GoRouter.of(context).go('/');
+          },
+          icon: const Icon(Icons.arrow_back_rounded),
+        ),
+        const SizedBox(width: AppSpacing.sm),
         Container(
           width: 42,
           height: 42,
